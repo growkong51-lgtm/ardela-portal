@@ -584,7 +584,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg>
         </span>
       </div>
-      <p class="role" data-i18n="role">Founder — Rivera &amp; Co.</p>
+      <p class="role" id="displayRole">Founder — Rivera &amp; Co.</p>
       <p class="tagline" id="displayBio">One tap, every way to reach me. No app, no download — just hold your phone to the card.</p>
     </header>
 
@@ -665,6 +665,10 @@
         <div class="lec-field">
           <label for="editName" data-i18n="nameFieldLabel">Display Name</label>
           <input id="editName" type="text" maxlength="60" autocomplete="name">
+        </div>
+        <div class="lec-field">
+          <label for="editRole">Role / Title</label>
+          <input id="editRole" type="text" maxlength="60" placeholder="Founder — Your Company">
         </div>
         <div class="lec-field">
           <label for="editBio" data-i18n="bioFieldLabel">Bio / Tagline</label>
@@ -819,7 +823,6 @@
   var I18N = {
     en: {
       demoTag: "Live Demo — Tap Portal",
-      role: "Founder — Rivera &amp; Co.",
       callLabel: "Call", emailLabel: "Email", visitLabel: "Visit",
       callToast: "Number copied", emailToast: "Email copied", visitToast: "Directions would open here",
       saveCta: "Save My Contact",
@@ -1056,6 +1059,7 @@
   var LS_KEY = "noirPortalDemoState_v3";
   var DEFAULT_STATE = {
     name:"Alex Rivera",
+    role:"Founder — Rivera & Co.",
     bio:"One tap, every way to reach me. No app, no download — just hold your phone to the card.",
     links:[
       { id:1, platform:"instagram", handle:"Alex Rivera" },
@@ -1503,6 +1507,7 @@
   function applyProfile(){
     var ini = initials(state.name);
     document.getElementById("displayName").textContent = state.name;
+    document.getElementById("displayRole").textContent = state.role;
     document.getElementById("displayBio").textContent = state.bio;
     document.getElementById("avatarInitials").textContent = ini;
     document.getElementById("stickyAvatarInitials").textContent = ini;
@@ -1582,9 +1587,14 @@
     if (navigator.vibrate) navigator.vibrate(8);
   }
   var editNameInput = document.getElementById("editName");
+  var editRoleInput = document.getElementById("editRole");
   var editBioInput = document.getElementById("editBio");
   editNameInput.addEventListener("input", function(){
     state.name = editNameInput.value;
+    persist(); applyProfile();
+  });
+  editRoleInput.addEventListener("input", function(){
+    state.role = editRoleInput.value;
     persist(); applyProfile();
   });
   editBioInput.addEventListener("input", function(){
@@ -1692,6 +1702,7 @@
   var overlay = document.getElementById("editorOverlay");
   function openEditor(){
     editNameInput.value = state.name;
+    editRoleInput.value = state.role;
     editBioInput.value = state.bio;
     linkRevealed = false;
     renderEditorLinks(); renderThemes(); renderBgChips(); renderModeToggle(); renderDirectOptions(); updateVisibilityUI();
@@ -1717,6 +1728,7 @@
     applyProfile(); applyTheme(); applyBackground(); renderLinks(); renderEditorLinks(); renderThemes(); renderBgChips();
     renderModeToggle(); renderDirectOptions();
     editNameInput.value = state.name;
+    editRoleInput.value = state.role;
     editBioInput.value = state.bio;
     showToastKey("resetDone");
   });
