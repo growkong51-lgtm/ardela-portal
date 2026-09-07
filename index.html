@@ -66,6 +66,10 @@
     justify-content:center;
     overflow:hidden;
   }
+  /* Hidden by default (from first paint, before any JS runs) — boot script
+     removes this once it knows whether to show the portal or redirect, so
+     a device with no local cache never flashes default/stale content. */
+  .stage.stage-hidden{ visibility:hidden; }
   .stage::before{
     content:'';
     position:absolute;
@@ -560,7 +564,7 @@
   </defs>
 </svg>
 
-<div class="stage" id="stage">
+<div class="stage stage-hidden" id="stage">
   <div class="custom-bg" id="customBg"></div>
   <div class="frame">
 
@@ -1848,7 +1852,15 @@
     renderLinks();
     applyLang();
   }
-  renderAll();
+  // The .stage-hidden class in the markup already keeps the portal
+  // invisible from first paint (before any JS even runs) — on a device
+  // that's never opened this page before, the only state available
+  // synchronously is the (wrong, default) local cache, so it's better to
+  // stay invisible through the brief cloud round-trip than to flash
+  // "Alex Rivera" / the full portal right before jumping to the real
+  // Direct Link URL. This just removes that class once we know which.
+  var stageBootEl = document.getElementById("stage");
+  function revealStage(){ if (stageBootEl) stageBootEl.classList.remove("stage-hidden"); }
 
   // #edit always forces the full editable portal, skipping Direct Link's
   // auto-redirect — the owner's way back in once a real URL is live there,
@@ -1870,25 +1882,34 @@
     return false;
   }
 
-  // Instant, device-local decision first (works even offline, and covers
-  // the owner's own phone which already has this saved).
-  var handled = maybeGoDirect();
-  if (forcePortal && !handled) openEditor();
+  var settled = false;
+  function settleWithCurrentState(){
+    if (settled) return;
+    settled = true;
+    renderAll();
+    if (!maybeGoDirect()) revealStage();
+    if (forcePortal) openEditor();
+  }
 
-  // Then bring in the shared cloud copy — the version every other device
-  // that taps the card should actually see. Falls back to local-only
-  // behavior above if Supabase isn't reachable.
-  if (sb){
+  if (!sb){
+    // No cloud configured/reachable — behave exactly like the original,
+    // fully device-local demo. Nothing to wait on.
+    settleWithCurrentState();
+  } else {
+    // Cloud is the source of truth for what a real visitor should see, so
+    // wait for it — but never longer than this, so a slow/broken network
+    // still lands on *something* instead of a blank screen forever.
+    var bootTimeout = setTimeout(settleWithCurrentState, 1500);
     sb.from("portal").select("*").limit(1).then(function(res){
-      var row = (!res.error && res.data && res.data.length) ? res.data[0] : null;
-      if (row){
-        cloudRow = row;
-        state = Object.assign(cloneDefault(), row.data || {});
-        try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(err){}
-        if (!handled){
-          renderAll();
-          handled = maybeGoDirect();
+      clearTimeout(bootTimeout);
+      if (!settled){
+        var row = (!res.error && res.data && res.data.length) ? res.data[0] : null;
+        if (row){
+          cloudRow = row;
+          state = Object.assign(cloneDefault(), row.data || {});
+          try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(err){}
         }
+        settleWithCurrentState();
       }
       return sb.auth.getSession();
     }).then(function(res){
