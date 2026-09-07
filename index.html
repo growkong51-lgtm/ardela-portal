@@ -674,7 +674,7 @@
           <span data-i18n="modeDirectLabel">Direct Link</span>
         </button>
       </div>
-      <p class="editor-hint" data-i18n="modeHint">Direct Link skips the portal page — tapping the card opens one platform immediately.</p>
+      <p class="editor-hint" data-i18n="modeHint">Direct Link skips the portal page — tapping the card opens one platform immediately. Works once that link's “Handle or Link” field below holds a real URL (e.g. facebook.com/yourname).</p>
       <div class="direct-picker" id="directPicker" hidden>
         <label data-i18n="directPickLabel">Which link should it open?</label>
         <div class="direct-options" id="directOptions"></div>
@@ -801,7 +801,7 @@
       modeSectionTitle: "Tap Behavior",
       modePortalLabel: "Full Portal",
       modeDirectLabel: "Direct Link",
-      modeHint: "Direct Link skips the portal page — tapping the card opens one platform immediately.",
+      modeHint: "Direct Link skips the portal page — tapping the card opens one platform immediately. Works once that link's “Handle or Link” field below holds a real URL (e.g. facebook.com/yourname).",
       directPickLabel: "Which link should it open?",
       directNoLinks: "Add at least one link first.",
       directArrivedNote: "This is where visitors land directly on",
@@ -828,18 +828,18 @@
   /* ---------------- platform + icon catalog ---------------- */
   var PLATFORM_ORDER = ["instagram","facebook","viber","whatsapp","tiktok","linkedin","telegram","youtube","website","email","phone","custom"];
   var PLATFORMS = {
-    instagram:{ label:"Instagram", placeholder:"@yourhandle" },
-    facebook: { label:"Facebook", placeholder:"Page or profile name" },
+    instagram:{ label:"Instagram", placeholder:"instagram.com/yourhandle" },
+    facebook: { label:"Facebook", placeholder:"facebook.com/yourpage" },
     viber:    { label:"Viber", placeholder:"Call or chat" },
-    whatsapp: { label:"WhatsApp", placeholder:"Message directly" },
-    tiktok:   { label:"TikTok", placeholder:"@yourhandle" },
-    linkedin: { label:"LinkedIn", placeholder:"Professional profile" },
-    telegram: { label:"Telegram", placeholder:"@username" },
-    youtube:  { label:"YouTube", placeholder:"Channel name" },
+    whatsapp: { label:"WhatsApp", placeholder:"wa.me/639xxxxxxxxx" },
+    tiktok:   { label:"TikTok", placeholder:"tiktok.com/@yourhandle" },
+    linkedin: { label:"LinkedIn", placeholder:"linkedin.com/in/yourname" },
+    telegram: { label:"Telegram", placeholder:"t.me/username" },
+    youtube:  { label:"YouTube", placeholder:"youtube.com/@channel" },
     website:  { label:"Website", placeholder:"yourdomain.com" },
     email:    { label:"Email", placeholder:"you@email.com" },
     phone:    { label:"Phone", placeholder:"+63 9xx xxx xxxx" },
-    custom:   { label:"Custom Link", placeholder:"Add a label" }
+    custom:   { label:"Custom Link", placeholder:"Full link, e.g. https://..." }
   };
   var ICONS = {
     instagram:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/></svg>',
@@ -1018,7 +1018,7 @@
     name:"Alex Rivera",
     bio:"One tap, every way to reach me. No app, no download — just hold your phone to the card.",
     links:[
-      { id:1, platform:"instagram", handle:"@alex.rivera" },
+      { id:1, platform:"instagram", handle:"Alex Rivera" },
       { id:2, platform:"facebook",  handle:"Alex Rivera" },
       { id:3, platform:"viber",     handle:"Call or chat" }
     ],
@@ -1075,6 +1075,29 @@
     showToast(msg);
   }
 
+  /* ---------------- resolve a link's actual tap destination ----------------
+     The "Handle or Link" field doubles as both — if it looks like a real,
+     absolute destination, taps navigate there for real. If it's just a
+     display handle (e.g. "@alex.rivera" or "Alex Rivera"), there's nothing
+     to navigate to yet, so taps fall back to the demo toast. */
+  var HANDLE_BASE = {
+    instagram:{ base:"https://instagram.com/", keepAt:false },
+    tiktok:   { base:"https://tiktok.com/",     keepAt:true  },
+    telegram: { base:"https://t.me/",           keepAt:false },
+    youtube:  { base:"https://youtube.com/",    keepAt:true  }
+  };
+  function resolveLinkUrl(link){
+    var raw = (link && link.handle || "").trim();
+    if (!raw) return null;
+    if (/^(https?:|mailto:|tel:)/i.test(raw)) return raw;
+    if (link.platform === "email" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return "mailto:" + raw;
+    if (link.platform === "phone" && /^[+()0-9 \-]{5,}$/.test(raw)) return "tel:" + raw.replace(/[^\d+]/g, "");
+    var hb = HANDLE_BASE[link.platform];
+    if (hb && /^@[a-z0-9._-]+$/i.test(raw)) return hb.base + (hb.keepAt ? raw : raw.slice(1));
+    if (raw.indexOf(" ") === -1 && /^[a-z0-9.\-]+\.[a-z]{2,}([/?#].*)?$/i.test(raw)) return "https://" + raw;
+    return null;
+  }
+
   /* ---------------- public link list ---------------- */
   function renderLinks(){
     var list = document.getElementById("linkList");
@@ -1089,8 +1112,9 @@
     }
     state.links.forEach(function(link, i){
       var meta = PLATFORMS[link.platform] || PLATFORMS.custom;
+      var linkDest = resolveLinkUrl(link);
       var row = document.createElement("a");
-      row.href = "#";
+      row.href = linkDest || "#";
       row.className = "link-row";
       row.style.animationDelay = (i * 55) + "ms";
 
@@ -1114,9 +1138,10 @@
       row.insertAdjacentHTML("beforeend", CHEVRON);
 
       row.addEventListener("click", function(e){
+        if (navigator.vibrate) navigator.vibrate(8);
+        if (linkDest) return; // real URL — let the anchor navigate normally
         e.preventDefault();
         showToast(t("wouldOpenPrefix") + " " + meta.label + " <b>&middot;</b> " + t("demoSuffix"));
-        if (navigator.vibrate) navigator.vibrate(8);
       });
 
       list.appendChild(row);
@@ -1561,7 +1586,7 @@
       name.textContent = meta.label;
       var handle = document.createElement("span");
       handle.className = "direct-option-handle";
-      handle.textContent = link.handle || meta.placeholder;
+      handle.textContent = (link.handle || meta.placeholder) + (resolveLinkUrl(link) ? "" : " — add a real URL to activate");
       text.appendChild(name);
       text.appendChild(handle);
 
@@ -1708,7 +1733,11 @@
 
   if (state.linkMode === "direct" && state.directLinkId != null){
     var directTarget = state.links.filter(function(l){ return l.id === state.directLinkId; })[0];
-    if (directTarget) showDirectRedirect(directTarget);
+    if (directTarget){
+      var directDest = resolveLinkUrl(directTarget);
+      if (directDest) window.location.replace(directDest);
+      else showDirectRedirect(directTarget);
+    }
   }
 })();
 </script>
