@@ -1731,13 +1731,20 @@
   renderLinks();
   applyLang();
 
-  if (state.linkMode === "direct" && state.directLinkId != null){
+  // #edit always forces the full editable portal, skipping Direct Link's
+  // auto-redirect — the owner's way back in once a real URL is live there,
+  // since the plain card URL would otherwise redirect away before the
+  // editor ever has a chance to render. Bookmark "…/#edit" for that.
+  var forcePortal = /(^|[?&#])edit(=1)?(&|$)/i.test(location.hash + location.search);
+  if (!forcePortal && state.linkMode === "direct" && state.directLinkId != null){
     var directTarget = state.links.filter(function(l){ return l.id === state.directLinkId; })[0];
     if (directTarget){
       var directDest = resolveLinkUrl(directTarget);
       if (directDest) window.location.replace(directDest);
       else showDirectRedirect(directTarget);
     }
+  } else if (forcePortal){
+    openEditor();
   }
 })();
 </script>
