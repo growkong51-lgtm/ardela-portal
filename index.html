@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ardéla Tap Portal</title>
+<meta name="description" content="Tap the card, land on your portal. A live demo of the personal link portal every NFC business card opens to — fully editable.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#000000;
+    --card:#0a0a0a;
+    --card-2:#0e0e0e;
+    --hair:rgba(255,255,255,0.09);
+    --hair-strong:rgba(255,255,255,0.16);
+    --white:#f5f5f3;
+    --white-dim:#c9c9c6;
+    --muted:#84837f;
+    /* accent tokens — user-selectable via the theme picker, default Noir Rouge */
+    --red:#c8102e;
+    --red-bright:#e2223f;
+    --red-glow:rgba(200,16,46,0.35);
+    /* surface tokens — swapped per full theme, not just the accent */
+    --cta-bg:#f5f5f3;
+    --cta-text:#000000;
+    --sheet-bg:#0c0c0c;
+    --input-bg:#050505;
+    --icon-bg:rgba(255,255,255,0.04);
+    --ring:#ffffff;
+    --grid-line:rgba(255,255,255,0.025);
+    --serif:'Playfair Display',Georgia,serif;
+    --sans:'Jost',-apple-system,BlinkMacSystemFont,sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;
+    background:var(--black);
+    color:var(--white);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    min-height:100svh;
+  }
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer;}
+  input,select{font-family:inherit;}
+
+  ::selection{background:var(--red); color:#fff;}
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible{
+    outline:2px solid var(--red-bright);
+    outline-offset:3px;
+    border-radius:4px;
+  }
+
+  /* ambient backdrop */
+  .stage{
+    position:relative;
+    min-height:100svh;
+    display:flex;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .stage::before{
+    content:'';
+    position:absolute;
+    inset:-30% -20% auto -20%;
+    height:60%;
+    background:radial-gradient(ellipse at 50% 0%, var(--red-glow), transparent 65%);
+    pointer-events:none;
+  }
+  .stage::after{
+    content:'';
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size:34px 34px;
+    -webkit-mask-image:radial-gradient(ellipse 60% 40% at 50% 0%, #000 0%, transparent 70%);
+            mask-image:radial-gradient(ellipse 60% 40% at 50% 0%, #000 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .stage.bg-glow::after{ display:none; }
+  .stage.bg-flat::before, .stage.bg-flat::after{ display:none; }
+
+  .custom-bg{
+    position:absolute; inset:0;
+    background-size:cover;
+    background-position:center;
+    opacity:0;
+    transition:opacity .35s var(--ease);
+    pointer-events:none;
+  }
+  .custom-bg.show{ opacity:1; }
+  .custom-bg::after{
+    content:'';
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.88) 55%, #000 100%);
+  }
+
+  .frame{
+    position:relative;
+    width:100%;
+    max-width:440px;
+    padding:20px 20px 96px;
+  }
+
+  /* ---------- top bar ---------- */
+  .top-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding-top:14px;
+  }
+  .demo-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    min-width:0;
+    font-size:10px;
+    font-weight:500;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--hair-strong);
+    padding:7px 12px 7px 10px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.02);
+  }
+  .demo-tag span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .demo-tag .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--red-bright);
+    box-shadow:0 0 8px var(--red-glow);
+    flex:none;
+  }
+  .top-controls{ display:flex; align-items:center; gap:8px; flex:none; }
+  .edit-btn{
+    flex:none; width:36px; height:36px; border-radius:50%;
+    border:1px solid var(--hair-strong); background:rgba(255,255,255,.02);
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .2s var(--ease), background .2s var(--ease);
+  }
+  .edit-btn:hover{ border-color:var(--red-bright); background:rgba(226,34,63,.1); }
+  .edit-btn svg{ width:15px; height:15px; stroke:var(--white); }
+
+  /* ---------- hero / identity ---------- */
+  .hero{ text-align:center; padding:34px 8px 30px; }
+  .avatar-wrap{
+    position:relative; width:104px; height:104px; margin:0 auto 22px;
+    animation:heroIn .55s var(--ease) both;
+  }
+  @keyframes heroIn{ from{ opacity:0; transform:scale(.9) translateY(8px); } to{ opacity:1; transform:scale(1) translateY(0); } }
+  .avatar-ring{ position:absolute; inset:0; border-radius:50%; border:1px solid var(--hair-strong); }
+  .avatar-ring::before{
+    content:''; position:absolute; inset:-7px; border-radius:50%;
+    border:1px solid var(--red-glow);
+  }
+  .avatar{
+    position:absolute; inset:6px; border-radius:50%;
+    background:linear-gradient(160deg,#161615,#050505);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--serif); font-size:30px; font-weight:600; color:#f2f0ec;
+    box-shadow:inset 0 0 0 1px var(--hair);
+  }
+  .name-row{ display:flex; align-items:center; justify-content:center; gap:7px; margin:0 0 8px; }
+  .name{ font-family:var(--serif); font-weight:700; font-size:34px; letter-spacing:-.01em; line-height:1.15; margin:0; }
+  .verified{
+    flex:none; width:19px; height:19px; border-radius:50%;
+    background:var(--red-bright); display:inline-flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 3px rgba(226,34,63,0.16);
+  }
+  .verified svg{ width:11px; height:11px; stroke:#fff; }
+  .role{ font-size:11px; font-weight:500; letter-spacing:.22em; text-transform:uppercase; color:var(--red-bright); margin:0 0 14px; }
+  .tagline{ font-size:14.5px; line-height:1.6; color:var(--white-dim); max-width:300px; margin:0 auto; font-weight:300; }
+
+  /* ---------- quick actions ---------- */
+  .quick-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:0 0 14px; }
+  .quick{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding:14px 6px 12px; background:var(--card); border:1px solid var(--hair); border-radius:14px;
+    min-height:44px;
+    transition:border-color .2s var(--ease), transform .2s var(--ease), background .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .quick:hover{ border-color:var(--hair-strong); background:var(--card-2); transform:translateY(-2px); box-shadow:0 10px 22px -10px rgba(0,0,0,0.5); }
+  .quick:active{ transform:scale(.96); box-shadow:none; }
+  .quick svg{ width:19px; height:19px; stroke:var(--white); }
+  .quick span{ font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--white-dim); }
+
+  /* ---------- primary CTA ---------- */
+  .cta{
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+    padding:16px 20px; margin-bottom:28px; background:var(--cta-bg); color:var(--cta-text); border:none;
+    border-radius:14px; font-size:14px; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+    min-height:44px; transition:transform .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+  }
+  .cta svg{ width:17px; height:17px; stroke:var(--cta-text); flex:none; }
+  .cta:hover{ box-shadow:0 10px 30px -8px rgba(255,255,255,0.25); }
+  .cta:active{ transform:scale(.98); }
+
+  /* ---------- divider ---------- */
+  .divider{
+    display:flex; align-items:center; gap:14px; margin:0 0 22px; color:var(--muted);
+    font-size:10px; letter-spacing:.24em; text-transform:uppercase;
+  }
+  .divider::before, .divider::after{ content:''; flex:1; height:1px; background:var(--hair); }
+
+  /* ---------- links ---------- */
+  .links{ display:flex; flex-direction:column; gap:10px; margin-bottom:8px; }
+  .link-row{
+    display:flex; align-items:center; gap:14px; padding:15px 16px;
+    background:var(--card); border:1px solid var(--hair); border-left:2px solid transparent; border-radius:12px;
+    min-height:44px; width:100%; text-align:left;
+    transition:border-color .22s var(--ease), background .22s var(--ease), transform .22s var(--ease), box-shadow .22s var(--ease);
+    opacity:0; transform:translateY(10px); animation:rise .5s var(--ease) forwards;
+  }
+  .link-row:hover{
+    background:var(--card-2); border-color:var(--hair-strong); border-left-color:var(--red-bright);
+    transform:translateY(-2px); box-shadow:0 12px 26px -12px rgba(0,0,0,0.55);
+  }
+  .link-row:active{ transform:scale(.985); box-shadow:none; }
+  .link-icon{
+    flex:none; width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+    border-radius:10px; background:var(--icon-bg); border:1px solid var(--hair);
+  }
+  .link-icon svg{ width:17px; height:17px; stroke:var(--white); }
+  .link-body{ flex:1; min-width:0; }
+  .link-name{ font-size:15px; font-weight:500; letter-spacing:.01em; color:var(--white); }
+  .link-go{ flex:none; width:15px; height:15px; stroke:var(--muted); transition:transform .22s var(--ease), stroke .22s var(--ease); }
+  .link-row:hover .link-go{ transform:translateX(3px); stroke:var(--red-bright); }
+  .links-empty{ text-align:center; font-size:12.5px; color:var(--muted); padding:22px 10px; border:1px dashed var(--hair-strong); border-radius:12px; line-height:1.6; }
+
+  @keyframes rise{ to{ opacity:1; transform:translateY(0); } }
+
+  /* ---------- footer ---------- */
+  .foot{ text-align:center; padding-top:8px; border-top:1px solid var(--hair); margin-top:28px; }
+  .foot-brand{ font-family:var(--serif); font-size:15px; letter-spacing:.06em; color:var(--white-dim); margin:22px 0 6px; }
+  .foot-brand b{ color:var(--white); font-weight:600; font-style:italic; }
+  .foot-note{ font-size:11.5px; line-height:1.7; color:var(--muted); max-width:300px; margin:0 auto; font-weight:300; }
+
+  /* ---------- sticky save-contact bar ---------- */
+  .sticky-bar{
+    position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, transparent, rgba(0,0,0,0.92) 30%);
+    transform:translateY(100%); opacity:0;
+    transition:transform .3s var(--ease), opacity .3s var(--ease);
+    pointer-events:none; z-index:15;
+  }
+  .sticky-bar.show{ transform:translateY(0); opacity:1; pointer-events:auto; }
+  .sticky-inner{
+    width:100%; max-width:408px; display:flex; align-items:center; gap:12px;
+    background:var(--card); border:1px solid var(--hair-strong); border-radius:14px; padding:8px 8px 8px 12px;
+    box-shadow:0 12px 34px -10px rgba(0,0,0,0.7);
+  }
+  .sticky-avatar{
+    flex:none; width:32px; height:32px; border-radius:50%;
+    background:linear-gradient(160deg,#1a1a19,#050505); border:1px solid var(--hair-strong);
+    display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:12px; font-weight:500;
+    color:#f2f0ec;
+  }
+  .sticky-name{ flex:1; min-width:0; font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sticky-save{
+    flex:none; display:flex; align-items:center; gap:7px; background:var(--cta-bg); color:var(--cta-text); border:none;
+    border-radius:9px; padding:10px 14px; font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+    min-height:40px; transition:transform .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+  }
+  .sticky-save:active{ transform:scale(.96); }
+  .sticky-save svg{ width:14px; height:14px; stroke:var(--cta-text); }
+
+  /* ---------- editor: launcher + sheet ---------- */
+  .editor-overlay{
+    position:fixed; inset:0; z-index:40; display:flex; align-items:flex-end; justify-content:center;
+    background:rgba(0,0,0,.7); opacity:0; pointer-events:none; transition:opacity .25s var(--ease);
+  }
+  .editor-overlay.show{ opacity:1; pointer-events:auto; }
+  .editor-sheet{
+    width:100%; max-width:440px; max-height:88vh; overflow-y:auto;
+    background:var(--sheet-bg); border:1px solid var(--hair-strong); border-bottom:none;
+    border-radius:22px 22px 0 0; padding:18px 20px calc(28px + env(safe-area-inset-bottom));
+    transform:translateY(40px); transition:transform .32s var(--ease), background .2s var(--ease);
+  }
+  .editor-overlay.show .editor-sheet{ transform:translateY(0); }
+  .editor-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px; }
+  .editor-head h2{ font-family:var(--serif); font-size:20px; font-weight:700; margin:0; }
+  .editor-close{
+    flex:none; width:32px; height:32px; border-radius:50%; border:1px solid var(--hair-strong);
+    background:transparent; color:var(--white); font-size:16px; line-height:1;
+  }
+  .editor-close:hover{ border-color:var(--red-bright); color:var(--red-bright); }
+  .editor-note{ font-size:11px; color:var(--muted); line-height:1.6; margin:2px 0 6px; font-weight:300; }
+
+  .editor-section{ padding:16px 0; border-top:1px solid var(--hair); }
+  .editor-section:first-of-type{ border-top:none; }
+  .editor-section h3{ font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--white-dim); margin:0 0 12px; }
+
+  /* ---------- link edit card (replaces the old native <select> row) ---------- */
+  .link-edit-card{
+    background:var(--card); border:1px solid var(--hair); border-radius:14px;
+    padding:12px; margin-bottom:10px;
+    transition:border-color .2s var(--ease);
+  }
+  .link-edit-card:focus-within{ border-color:var(--hair-strong); }
+  .lec-top{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .lec-platform{
+    flex:1; min-width:0; display:flex; align-items:center; gap:9px;
+    background:var(--input-bg); border:1px solid var(--hair-strong); border-radius:10px;
+    padding:6px 10px; min-height:44px;
+    transition:border-color .2s var(--ease);
+  }
+  .lec-platform:hover{ border-color:var(--red-bright); }
+  .lec-icon{
+    flex:none; width:28px; height:28px; border-radius:7px; background:var(--icon-bg);
+    border:1px solid var(--hair); display:flex; align-items:center; justify-content:center;
+  }
+  .lec-icon svg{ width:14px; height:14px; stroke:var(--white); }
+  .lec-name{ flex:1; min-width:0; text-align:left; font-size:13.5px; font-weight:500; color:var(--white); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lec-chevron{ flex:none; width:12px; height:12px; stroke:var(--muted); transition:transform .22s var(--ease); }
+  .lec-platform[aria-expanded="true"] .lec-chevron{ transform:rotate(180deg); }
+  .lec-tools{ flex:none; display:flex; gap:6px; }
+  .lec-tools button{
+    width:30px; height:30px; border-radius:8px; border:1px solid var(--hair-strong);
+    background:transparent; color:var(--white-dim); display:flex; align-items:center; justify-content:center;
+    transition:color .2s var(--ease), border-color .2s var(--ease), opacity .2s var(--ease);
+  }
+  .lec-tools button svg{ width:12px; height:12px; stroke:currentColor; }
+  .lec-tools button:hover:not(:disabled){ color:var(--red-bright); border-color:var(--red-bright); }
+  .lec-tools button:disabled{ opacity:.3; }
+  .lec-tools .lec-remove:hover:not(:disabled){ color:#fff; background:var(--red-bright); border-color:var(--red-bright); }
+
+  .lec-field label{
+    display:block; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); margin:0 0 6px 2px;
+  }
+  .lec-field input{
+    width:100%; background:var(--input-bg); border:1px solid var(--hair-strong); border-radius:10px;
+    padding:0 12px; color:var(--white); font-size:13.5px; min-height:42px;
+    transition:border-color .2s var(--ease);
+  }
+  .lec-field input::placeholder{ color:#5a5a57; }
+  .lec-field input:focus{ border-color:var(--red-bright); outline:none; }
+  .lec-field textarea{
+    width:100%; background:var(--input-bg); border:1px solid var(--hair-strong); border-radius:10px;
+    padding:10px 12px; color:var(--white); font-size:13.5px; font-family:inherit; line-height:1.5;
+    resize:vertical; min-height:56px; transition:border-color .2s var(--ease);
+  }
+  .lec-field textarea::placeholder{ color:#5a5a57; }
+  .lec-field textarea:focus{ border-color:var(--red-bright); outline:none; }
+  .profile-fields{ display:flex; flex-direction:column; gap:12px; }
+
+  .lec-picker{
+    display:grid; grid-template-rows:0fr; opacity:0;
+    transition:grid-template-rows .28s var(--ease), opacity .22s var(--ease), margin-top .28s var(--ease);
+  }
+  .lec-picker.open{ grid-template-rows:1fr; opacity:1; margin-top:12px; }
+  .lec-picker-inner{ overflow:hidden; }
+  .lec-picker-grid{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+    padding-top:12px; border-top:1px solid var(--hair);
+  }
+  .lec-option{
+    display:flex; flex-direction:column; align-items:center; gap:5px; padding:8px 2px;
+    background:var(--input-bg); border:1px solid var(--hair); border-radius:10px;
+    transition:border-color .2s var(--ease), background .2s var(--ease);
+  }
+  .lec-option:hover{ border-color:var(--hair-strong); background:var(--card-2); }
+  .lec-option[aria-pressed="true"]{ border-color:var(--red-bright); }
+  .lec-option .lec-icon{ background:transparent; border:none; width:22px; height:22px; }
+  .lec-option .lec-icon svg{ width:15px; height:15px; }
+  .lec-option span{ font-size:8.5px; font-weight:500; letter-spacing:.03em; text-transform:uppercase; color:var(--white-dim); text-align:center; line-height:1.2; }
+
+  .add-link-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:12px;
+    border:1px dashed var(--hair-strong); border-radius:10px; background:transparent; color:var(--white-dim);
+    font-size:12.5px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; min-height:44px; margin-top:4px;
+    transition:border-color .2s var(--ease), color .2s var(--ease);
+  }
+  .add-link-btn:hover{ border-color:var(--red-bright); color:var(--white); }
+  .add-link-btn svg{ width:14px; height:14px; stroke:currentColor; }
+
+  .theme-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .theme-chip{
+    width:76px; display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:transparent; border:none; padding:0;
+  }
+  .theme-swatch{
+    width:76px; height:50px; border-radius:12px; border:2px solid transparent;
+    position:relative; overflow:hidden; transition:border-color .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .theme-chip:hover .theme-swatch{ transform:translateY(-2px); box-shadow:0 10px 20px -8px rgba(0,0,0,0.5); }
+  .theme-swatch:active{ transform:scale(.95); }
+  .theme-swatch.pop{ animation:themePop .35s var(--ease); }
+  @keyframes themePop{ 0%{ transform:scale(1); } 45%{ transform:scale(1.1); } 100%{ transform:scale(1); } }
+  .theme-swatch .ts-card{ position:absolute; left:6px; right:6px; bottom:6px; top:18px; border-radius:6px; }
+  .theme-swatch .ts-dot{
+    position:absolute; width:14px; height:14px; border-radius:50%; bottom:8px; right:8px;
+    box-shadow:0 0 0 2px rgba(0,0,0,0.25);
+  }
+  .theme-chip[aria-pressed="true"] .theme-swatch{ border-color:var(--ring); }
+  .theme-name{ font-size:9.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--white-dim); text-align:center; }
+
+  .bg-chips{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .bg-chip{
+    padding:9px 14px; border-radius:999px; border:1px solid var(--hair-strong); background:transparent;
+    color:var(--white-dim); font-size:11px; font-weight:500; letter-spacing:.05em; text-transform:uppercase; min-height:38px;
+    transition:background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
+  }
+  .bg-chip[aria-pressed="true"]{ background:var(--cta-bg); color:var(--cta-text); border-color:var(--cta-bg); }
+  .upload-btn{
+    display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:13px;
+    border:1px solid var(--hair-strong); border-radius:10px; color:var(--white); font-size:12.5px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.05em; min-height:44px; transition:border-color .2s var(--ease);
+  }
+  .upload-btn:hover{ border-color:var(--red-bright); }
+  .upload-btn svg{ width:15px; height:15px; stroke:var(--white); }
+  .bg-preview{ position:relative; margin-top:12px; border-radius:10px; overflow:hidden; border:1px solid var(--hair-strong); }
+  .bg-preview img{ display:block; width:100%; height:96px; object-fit:cover; }
+  .bg-preview button{
+    position:absolute; top:8px; right:8px; width:26px; height:26px; border-radius:50%;
+    background:rgba(0,0,0,.7); border:1px solid rgba(255,255,255,.3); color:#fff; font-size:14px; line-height:1;
+  }
+  .editor-hint{ font-size:10.5px; color:var(--muted); line-height:1.6; margin:12px 0 0; font-weight:300; }
+
+  .editor-footer{ margin-top:4px; padding-top:16px; border-top:1px solid var(--hair); }
+  .reset-btn{
+    width:100%; padding:12px; border-radius:10px; border:1px solid var(--hair-strong); background:transparent;
+    color:var(--muted); font-size:11.5px; font-weight:500; letter-spacing:.05em; text-transform:uppercase; min-height:42px;
+    transition:color .2s var(--ease), border-color .2s var(--ease);
+  }
+  .reset-btn:hover{ color:var(--red-bright); border-color:var(--red-bright); }
+
+  /* ---------- tap-behavior mode toggle ---------- */
+  .mode-toggle{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  .mode-option{
+    display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 10px;
+    background:var(--input-bg); border:1px solid var(--hair-strong); border-radius:12px; color:var(--white-dim);
+    transition:border-color .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+  }
+  .mode-option svg{ width:20px; height:20px; stroke:currentColor; }
+  .mode-option span{ font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+  .mode-option[aria-pressed="true"]{ border-color:var(--red-bright); background:var(--card-2); color:var(--white); }
+  .mode-option[aria-pressed="true"] svg{ stroke:var(--red-bright); }
+
+  .direct-picker{ margin-top:14px; }
+  .direct-picker label{
+    display:block; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); margin:0 0 8px 2px;
+  }
+  .url-preview{
+    display:flex; align-items:center; gap:9px; margin-top:12px; padding:11px 13px; width:100%;
+    background:var(--input-bg); border:1px solid var(--hair-strong); border-radius:10px;
+    font-size:12px; color:var(--white-dim); text-align:left;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    overflow-x:auto; white-space:nowrap;
+    transition:border-color .2s var(--ease);
+  }
+  .url-preview:hover{ border-color:var(--red-bright); }
+  .url-preview svg{ width:14px; height:14px; stroke:var(--muted); flex:none; }
+  #revealHint{ margin-top:6px; }
+
+  .card-type-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .card-type-option{
+    display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 6px;
+    background:var(--input-bg); border:1px solid var(--hair-strong); border-radius:12px;
+    transition:border-color .2s var(--ease);
+  }
+  .card-type-option[aria-pressed="true"]{ border-color:var(--red-bright); }
+  .cto-swatch{ width:34px; height:22px; border-radius:4px; border:1px solid rgba(255,255,255,.15); }
+  .cto-one{ background:linear-gradient(145deg,#fdfcfa,#e8e4dc); }
+  .cto-noir{ background:linear-gradient(145deg,#2a2a2a,#050505); }
+  .cto-titanium{ background:linear-gradient(145deg,#c9cdd1,#7c8288); }
+  .cto-name{ font-size:10.5px; font-weight:600; color:var(--white); text-align:center; }
+  .cto-desc{ font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .direct-options{ display:flex; flex-direction:column; gap:8px; }
+  .direct-option{
+    display:flex; align-items:center; gap:12px; padding:9px 12px; width:100%; text-align:left;
+    background:var(--input-bg); border:1px solid var(--hair-strong); border-radius:10px;
+    transition:border-color .2s var(--ease);
+  }
+  .direct-option[aria-pressed="true"]{ border-color:var(--red-bright); }
+  .direct-option .lec-icon{ flex:none; }
+  .direct-option-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+  .direct-option-name{ font-size:13px; font-weight:500; color:var(--white); }
+  .direct-option-handle{ font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .direct-option-check{
+    flex:none; width:18px; height:18px; border-radius:50%; border:1px solid var(--hair-strong);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .direct-option[aria-pressed="true"] .direct-option-check{ border-color:var(--red-bright); background:var(--red-bright); }
+  .direct-option-check svg{ width:10px; height:10px; stroke:#fff; opacity:0; transition:opacity .15s var(--ease); }
+  .direct-option[aria-pressed="true"] .direct-option-check svg{ opacity:1; }
+
+  /* ---------- direct-link redirect screen (replaces the portal on load) ---------- */
+  .direct-screen{
+    position:fixed; inset:0; z-index:60; background:var(--black);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .direct-screen[hidden]{ display:none; }
+  .direct-screen-inner{ width:100%; max-width:340px; text-align:center; display:flex; flex-direction:column; align-items:center; }
+  .ds-identity{ display:flex; align-items:center; gap:9px; margin-bottom:40px; opacity:.7; }
+  .ds-avatar{
+    width:26px; height:26px; border-radius:50%; background:linear-gradient(160deg,#1a1a19,#050505);
+    border:1px solid var(--hair-strong); display:flex; align-items:center; justify-content:center;
+    font-family:var(--serif); font-size:10px; font-weight:600; color:#f2f0ec;
+  }
+  .ds-name{ font-size:12.5px; font-weight:500; color:var(--white-dim); }
+  .ds-icon{
+    width:76px; height:76px; border-radius:20px; display:flex; align-items:center; justify-content:center;
+    margin-bottom:22px; animation:dsPulse 1.6s ease-in-out infinite;
+  }
+  .ds-icon svg{ width:36px; height:36px; }
+  @keyframes dsPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
+  .ds-arrived{ margin-top:8px; animation:heroIn .4s var(--ease) both; }
+  .ds-arrived-note{ font-size:12px; color:var(--muted); margin:0 0 4px; }
+  .ds-arrived-platform{ font-family:var(--serif); font-size:24px; font-weight:700; color:var(--white); margin:0 0 14px; }
+  .ds-arrived-sub{ font-size:11.5px; line-height:1.6; color:var(--muted); max-width:280px; margin:0 auto 22px; font-weight:300; }
+  .ds-view-portal{
+    padding:12px 22px; border-radius:999px; border:1px solid var(--hair-strong); background:transparent;
+    color:var(--white-dim); font-size:11.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+    min-height:44px; transition:border-color .2s var(--ease), color .2s var(--ease);
+  }
+  .ds-view-portal:hover{ border-color:var(--red-bright); color:var(--white); }
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translate(-50%,14px);
+    background:#111; border:1px solid rgba(255,255,255,.16); color:#fff;
+    font-size:12.5px; font-weight:400; letter-spacing:.02em; padding:11px 18px; border-radius:999px;
+    opacity:0; pointer-events:none; transition:opacity .25s var(--ease), transform .25s var(--ease);
+    z-index:50; white-space:nowrap; max-width:calc(100vw - 32px); text-overflow:ellipsis; overflow:hidden;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%,-64px); }
+  .toast b{ color:var(--red-bright); font-weight:500; }
+
+  @media (prefers-reduced-motion: reduce){
+    .link-row, .avatar-wrap, .theme-swatch.pop, .ds-icon, .ds-arrived{ animation:none; opacity:1; transform:none; }
+    *{ transition-duration:.01ms !important; }
+  }
+
+  @media (min-width:520px){ .frame{ padding-top:40px; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="igGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FEDA75"/>
+      <stop offset="28%" stop-color="#FA7E1E"/>
+      <stop offset="55%" stop-color="#D62976"/>
+      <stop offset="78%" stop-color="#962FBF"/>
+      <stop offset="100%" stop-color="#4F5BD5"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="stage" id="stage">
+  <div class="custom-bg" id="customBg"></div>
+  <div class="frame">
+
+    <div class="top-bar">
+      <div class="demo-tag"><i class="dot"></i><span data-i18n="demoTag">Live Demo — Tap Portal</span></div>
+      <div class="top-controls">
+        <button class="edit-btn" type="button" id="editPortalBtn" aria-label="Edit Portal">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l.8-3.6L16.6 4.6a1.8 1.8 0 0 1 2.6 0l.2.2a1.8 1.8 0 0 1 0 2.6L7.6 19.2 4 20z"/><path d="M14.5 6.7l2.8 2.8"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <header class="hero">
+      <div class="avatar-wrap">
+        <div class="avatar-ring"></div>
+        <div class="avatar" id="avatarInitials">AR</div>
+      </div>
+      <div class="name-row">
+        <h1 class="name" id="displayName">Alex Rivera</h1>
+        <span class="verified" title="Verified portal owner">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg>
+        </span>
+      </div>
+      <p class="role" data-i18n="role">Founder — Rivera &amp; Co.</p>
+      <p class="tagline" id="displayBio">One tap, every way to reach me. No app, no download — just hold your phone to the card.</p>
+    </header>
+
+    <nav class="quick-row" aria-label="Quick contact actions">
+      <button class="quick" type="button" data-copy="+1 (415) 555-0142" data-toast-key="callToast">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.8c1.4 2.8 3.8 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.4c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+        <span data-i18n="callLabel">Call</span>
+      </button>
+      <button class="quick" type="button" data-copy="hello@alexrivera.co" data-toast-key="emailToast">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>
+        <span data-i18n="emailLabel">Email</span>
+      </button>
+      <button class="quick" type="button" data-toast-key="visitToast">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.4 7-12a7 7 0 1 0-14 0c0 5.6 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/></svg>
+        <span data-i18n="visitLabel">Visit</span>
+      </button>
+    </nav>
+
+    <button class="cta" type="button" id="saveContact">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m6.5 11 5.5 5.5L17.5 11"/><path d="M4 20h16"/></svg>
+      <span data-i18n="saveCta">Save My Contact</span>
+    </button>
+
+    <div class="divider" data-i18n="divider1">Connect Elsewhere</div>
+
+    <div class="links" id="linkList"></div>
+
+    <footer class="foot">
+      <p class="foot-brand"><b>ARDÉLA</b> · <span data-i18n="footBrand">tap-to-connect cards</span></p>
+      <p class="foot-note" data-i18n="footNote">This is a live preview of a personal portal. Every card ships with its own private page — only its owner can sign in and edit what it opens to.</p>
+    </footer>
+
+  </div>
+</div>
+
+<div class="sticky-bar" id="stickyBar">
+  <div class="sticky-inner">
+    <div class="sticky-avatar" id="stickyAvatarInitials">AR</div>
+    <div class="sticky-name" id="stickyNameText">Alex Rivera</div>
+    <button class="sticky-save" type="button" id="stickySave">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m6.5 11 5.5 5.5L17.5 11"/><path d="M4 20h16"/></svg>
+      <span data-i18n="stickySave">Save Contact</span>
+    </button>
+  </div>
+</div>
+
+<div class="editor-overlay" id="editorOverlay">
+  <div class="editor-sheet" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+    <div class="editor-head">
+      <h2 id="editorTitle" data-i18n="editorTitle">Edit Your Portal</h2>
+      <button class="editor-close" type="button" id="editorClose" aria-label="Close">&times;</button>
+    </div>
+    <p class="editor-note" data-i18n="editorNote">This lives behind your private login in the real product — try it out here.</p>
+
+    <div class="editor-section">
+      <h3 data-i18n="profileSectionTitle">Profile</h3>
+      <div class="profile-fields">
+        <div class="lec-field">
+          <label for="editName" data-i18n="nameFieldLabel">Display Name</label>
+          <input id="editName" type="text" maxlength="60" autocomplete="name">
+        </div>
+        <div class="lec-field">
+          <label for="editBio" data-i18n="bioFieldLabel">Bio / Tagline</label>
+          <textarea id="editBio" rows="2" maxlength="140"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="editor-section">
+      <h3 data-i18n="linksSectionTitle">Your Links</h3>
+      <div class="editor-links" id="editorLinks"></div>
+      <button class="add-link-btn" type="button" id="addLinkBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span data-i18n="addLink">Add Link</span>
+      </button>
+    </div>
+
+    <div class="editor-section">
+      <h3 data-i18n="modeSectionTitle">Tap Behavior</h3>
+      <div class="mode-toggle" id="modeToggle">
+        <button class="mode-option" type="button" data-mode="portal" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="4" rx="1.5"/><rect x="4" y="11" width="16" height="4" rx="1.5"/><rect x="4" y="17" width="10" height="4" rx="1.5"/></svg>
+          <span data-i18n="modePortalLabel">Full Portal</span>
+        </button>
+        <button class="mode-option" type="button" data-mode="direct" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7z"/></svg>
+          <span data-i18n="modeDirectLabel">Direct Link</span>
+        </button>
+      </div>
+      <p class="editor-hint" data-i18n="modeHint">Direct Link skips the portal page — tapping the card opens one platform immediately.</p>
+      <div class="direct-picker" id="directPicker" hidden>
+        <label data-i18n="directPickLabel">Which link should it open?</label>
+        <div class="direct-options" id="directOptions"></div>
+      </div>
+    </div>
+
+    <div class="editor-section">
+      <h3>Your Card</h3>
+      <div class="card-type-row" id="cardTypeRow">
+        <button class="card-type-option" type="button" data-card="one" aria-pressed="false">
+          <span class="cto-swatch cto-one"></span>
+          <span class="cto-name">Ardela One</span>
+          <span class="cto-desc">White Card</span>
+        </button>
+        <button class="card-type-option" type="button" data-card="noir" aria-pressed="true">
+          <span class="cto-swatch cto-noir"></span>
+          <span class="cto-name">Ardela Noir</span>
+          <span class="cto-desc">Black Card</span>
+        </button>
+        <button class="card-type-option" type="button" data-card="titanium" aria-pressed="false">
+          <span class="cto-swatch cto-titanium"></span>
+          <span class="cto-name">Ardela Titanium</span>
+          <span class="cto-desc">Metal Card</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="editor-section">
+      <h3>Link Visibility</h3>
+      <div class="mode-toggle" id="visibilityToggle">
+        <button class="mode-option" type="button" data-visibility="public" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.2 2.3 3.4 5.3 3.4 8.5s-1.2 6.2-3.4 8.5c-2.2-2.3-3.4-5.3-3.4-8.5S9.8 5.8 12 3.5z"/></svg>
+          <span>Public</span>
+        </button>
+        <button class="mode-option" type="button" data-visibility="private" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg>
+          <span>Private</span>
+        </button>
+      </div>
+      <p class="editor-hint" id="visibilityHint">Discoverable — anyone who searches your name can find this page.</p>
+      <button type="button" class="url-preview" id="urlPreviewBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6"/><path d="M8.5 12.5 6 15a3 3 0 0 0 4.2 4.2l2.5-2.5"/><path d="M15.5 11.5 18 9a3 3 0 0 0-4.2-4.2l-2.5 2.5"/></svg>
+        <span id="urlPreviewText">linkardela.com/alex-rivera</span>
+      </button>
+      <p class="editor-hint" id="revealHint" hidden>Tap again to copy the full link.</p>
+    </div>
+
+    <div class="editor-section">
+      <h3 data-i18n="themeSectionTitle">Theme</h3>
+      <div class="theme-row" id="themeRow"></div>
+    </div>
+
+    <div class="editor-section">
+      <h3 data-i18n="bgSectionTitle">Background</h3>
+      <div class="bg-chips" id="bgChips">
+        <button class="bg-chip" type="button" data-bg="grid" data-i18n="bgGrid">Grid</button>
+        <button class="bg-chip" type="button" data-bg="glow" data-i18n="bgGlow">Glow</button>
+        <button class="bg-chip" type="button" data-bg="flat" data-i18n="bgFlat">Flat</button>
+        <button class="bg-chip" type="button" data-bg="custom" data-i18n="bgCustom">Custom</button>
+      </div>
+      <label class="upload-btn" for="bgUpload">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V6"/><path d="m8.5 9.5 3.5-3.5 3.5 3.5"/><path d="M5 16.5v1A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-1"/></svg>
+        <span data-i18n="uploadBg">Upload Your Own Design</span>
+      </label>
+      <input type="file" id="bgUpload" accept="image/*" hidden>
+      <div class="bg-preview" id="bgPreview" hidden>
+        <img id="bgPreviewImg" alt="Custom background preview">
+        <button type="button" id="bgRemove" aria-label="Remove background image">&times;</button>
+      </div>
+      <p class="editor-hint" data-i18n="bgHint">Saved on this device only — this is a design preview, not a live product yet.</p>
+    </div>
+
+    <div class="editor-footer">
+      <button class="reset-btn" type="button" id="resetBtn" data-i18n="resetDefault">Reset to Default</button>
+    </div>
+  </div>
+</div>
+
+<div class="direct-screen" id="directScreen" hidden>
+  <div class="direct-screen-inner">
+    <div class="ds-identity">
+      <div class="ds-avatar" id="dsAvatar">AR</div>
+      <div class="ds-name" id="dsName">Alex Rivera</div>
+    </div>
+    <div class="ds-icon" id="dsIcon"></div>
+    <div class="ds-arrived" id="dsArrived">
+      <p class="ds-arrived-note" data-i18n="directArrivedNote">This is where visitors land directly on</p>
+      <p class="ds-arrived-platform" id="dsArrivedPlatform">Instagram</p>
+      <p class="ds-arrived-sub" data-i18n="directArrivedSub">Demo mode — no live destination yet, but this is exactly how it will feel once your real link is connected.</p>
+      <button class="ds-view-portal" type="button" id="dsViewPortal" data-i18n="viewFullPortal">View Full Portal (Testing)</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- i18n ---------------- */
+  var I18N = {
+    en: {
+      demoTag: "Live Demo — Tap Portal",
+      role: "Founder — Rivera &amp; Co.",
+      callLabel: "Call", emailLabel: "Email", visitLabel: "Visit",
+      callToast: "Number copied", emailToast: "Email copied", visitToast: "Directions would open here",
+      saveCta: "Save My Contact",
+      divider1: "Connect Elsewhere",
+      wouldOpenPrefix: "Would open",
+      demoSuffix: "demo mode",
+      noLinksYet: "No links yet — tap Edit Portal to add one.",
+      footBrand: "tap-to-connect cards",
+      footNote: "This is a live preview of a personal portal. Every card ships with its own private page — only its owner can sign in and edit what it opens to.",
+      stickySave: "Save Contact",
+      vcardToast: "Contact card downloaded",
+      editorTitle: "Edit Your Portal",
+      editorNote: "This lives behind your private login in the real product — try it out here.",
+      profileSectionTitle: "Profile",
+      nameFieldLabel: "Display Name",
+      bioFieldLabel: "Bio / Tagline",
+      linksSectionTitle: "Your Links",
+      addLink: "Add Link",
+      modeSectionTitle: "Tap Behavior",
+      modePortalLabel: "Full Portal",
+      modeDirectLabel: "Direct Link",
+      modeHint: "Direct Link skips the portal page — tapping the card opens one platform immediately.",
+      directPickLabel: "Which link should it open?",
+      directNoLinks: "Add at least one link first.",
+      directArrivedNote: "This is where visitors land directly on",
+      directArrivedSub: "Demo mode — no live destination yet, but this is exactly how it will feel once your real link is connected.",
+      viewFullPortal: "View Full Portal (Testing)",
+      themeSectionTitle: "Theme",
+      bgSectionTitle: "Background",
+      bgGrid: "Grid", bgGlow: "Glow", bgFlat: "Flat", bgCustom: "Custom",
+      uploadBg: "Upload Your Own Design",
+      bgHint: "Saved on this device only — this is a design preview, not a live product yet.",
+      resetDefault: "Reset to Default",
+      removeLink: "Remove link",
+      moveUp: "Move up", moveDown: "Move down",
+      handleLabel: "Handle or Link",
+      bgInvalidType: "Please choose an image file",
+      bgTooLarge: "Image is too large — please use one under 3MB",
+      saveFailed: "Could not save — try a smaller image",
+      resetDone: "Portal reset to default"
+    }
+  };
+  var currentLang = "en";
+  function t(key){ return I18N.en[key] || ""; }
+
+  /* ---------------- platform + icon catalog ---------------- */
+  var PLATFORM_ORDER = ["instagram","facebook","viber","whatsapp","tiktok","linkedin","telegram","youtube","website","email","phone","custom"];
+  var PLATFORMS = {
+    instagram:{ label:"Instagram", placeholder:"@yourhandle" },
+    facebook: { label:"Facebook", placeholder:"Page or profile name" },
+    viber:    { label:"Viber", placeholder:"Call or chat" },
+    whatsapp: { label:"WhatsApp", placeholder:"Message directly" },
+    tiktok:   { label:"TikTok", placeholder:"@yourhandle" },
+    linkedin: { label:"LinkedIn", placeholder:"Professional profile" },
+    telegram: { label:"Telegram", placeholder:"@username" },
+    youtube:  { label:"YouTube", placeholder:"Channel name" },
+    website:  { label:"Website", placeholder:"yourdomain.com" },
+    email:    { label:"Email", placeholder:"you@email.com" },
+    phone:    { label:"Phone", placeholder:"+63 9xx xxx xxxx" },
+    custom:   { label:"Custom Link", placeholder:"Add a label" }
+  };
+  var ICONS = {
+    instagram:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/></svg>',
+    facebook:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg>',
+    viber:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.4 0C9.473.028 5.333.344 3.02 2.467 1.302 4.187.696 6.7.633 9.817.57 12.933.488 18.776 6.12 20.36h.003l-.004 2.416s-.037.977.61 1.177c.777.242 1.234-.5 1.98-1.302.407-.44.972-1.084 1.397-1.58 3.85.326 6.812-.416 7.15-.525.776-.252 5.176-.816 5.892-6.657.74-6.02-.36-9.83-2.34-11.546-.596-.55-3.006-2.3-8.375-2.323 0 0-.395-.025-1.037-.017zm.058 1.693c.545-.004.88.017.88.017 4.542.02 6.717 1.388 7.222 1.846 1.675 1.435 2.53 4.868 1.906 9.897v.002c-.604 4.878-4.174 5.184-4.832 5.395-.28.09-2.882.737-6.153.524 0 0-2.436 2.94-3.197 3.704-.12.12-.26.167-.352.144-.13-.033-.166-.188-.165-.414l.02-4.018c-4.762-1.32-4.485-6.292-4.43-8.895.054-2.604.543-4.738 1.996-6.173 1.96-1.773 5.474-2.018 7.11-2.03zm.38 2.602c-.167 0-.303.135-.304.302 0 .167.133.303.3.305 1.624.01 2.946.537 4.028 1.592 1.073 1.046 1.62 2.468 1.633 4.334.002.167.14.3.307.3.166-.002.3-.138.3-.304-.014-1.984-.618-3.596-1.816-4.764-1.19-1.16-2.692-1.753-4.447-1.765zm-3.96.695c-.19-.032-.4.005-.616.117l-.01.002c-.43.247-.816.562-1.146.932-.002.004-.006.004-.008.008-.267.323-.42.638-.46.948-.008.046-.01.093-.007.14 0 .136.022.27.065.4l.013.01c.135.48.473 1.276 1.205 2.604.42.768.903 1.5 1.446 2.186.27.344.56.673.87.984l.132.132c.31.308.64.6.984.87.686.543 1.418 1.027 2.186 1.447 1.328.733 2.126 1.07 2.604 1.206l.01.014c.13.042.265.064.402.063.046.002.092 0 .138-.008.31-.036.627-.19.948-.46.004 0 .003-.002.008-.005.37-.33.683-.72.93-1.148l.003-.01c.225-.432.15-.842-.18-1.12-.004 0-.698-.58-1.037-.83-.36-.255-.73-.492-1.113-.71-.51-.285-1.032-.106-1.248.174l-.447.564c-.23.283-.657.246-.657.246-3.12-.796-3.955-3.955-3.955-3.955s-.037-.426.248-.656l.563-.448c.277-.215.456-.737.17-1.248-.217-.383-.454-.756-.71-1.115-.25-.34-.826-1.033-.83-1.035-.137-.165-.31-.265-.502-.297zm4.49.88c-.158.002-.29.124-.3.282-.01.167.115.312.282.324 1.16.085 2.017.466 2.645 1.15.63.688.93 1.524.906 2.57-.002.168.13.306.3.31.166.003.305-.13.31-.297.025-1.175-.334-2.193-1.067-2.994-.74-.81-1.777-1.253-3.05-1.346h-.024zm.463 1.63c-.16.002-.29.127-.3.287-.008.167.12.31.288.32.523.028.875.175 1.113.422.24.245.388.62.416 1.164.01.167.15.295.318.287.167-.008.295-.15.287-.317-.03-.644-.215-1.178-.58-1.557-.367-.378-.893-.574-1.52-.607h-.018z"/></svg>',
+    whatsapp:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.4-4.2A8 8 0 1 1 8.8 19L4 20z"/><path d="M8.7 9.6c.3 2.6 2.6 4.9 5.2 5.2.9.1 1.5-.6 1.2-1.4l-.4-1-1.7-.3-.9.9c-1-.5-1.9-1.4-2.4-2.4l.9-.9-.3-1.7-1-.4c-.8-.3-1.5.3-1.4 1.2z" fill="currentColor" stroke="none"/></svg>',
+    tiktok:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.3a3.3 3.3 0 1 1-2.6-3.23"/><path d="M14 4c.35 2.1 1.95 3.6 4 3.8"/></svg>',
+    linkedin:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M8 10.5V17M8 7.6v.05"/><path d="M12 17v-3.6c0-1.5 1-2.3 2.2-2.3 1.2 0 1.8.8 1.8 2.3V17"/></svg>',
+    telegram:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 3 10.6l6.2 2.1"/><path d="M21 3 17.8 20 11.5 14.3"/><path d="M21 3l-11.3 10.2"/></svg>',
+    youtube:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="4"/><path d="M10.5 9.3v5.4l4.7-2.7z" fill="currentColor" stroke="none"/></svg>',
+    website:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.2 2.3 3.4 5.3 3.4 8.5s-1.2 6.2-3.4 8.5c-2.2-2.3-3.4-5.3-3.4-8.5S9.8 5.8 12 3.5z"/></svg>',
+    email:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>',
+    phone:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.8c1.4 2.8 3.8 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.4c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>',
+    custom:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6"/><path d="M8.5 12.5 6 15a3 3 0 0 0 4.2 4.2l2.5-2.5"/><path d="M15.5 11.5 18 9a3 3 0 0 0-4.2-4.2l-2.5 2.5"/></svg>'
+  };
+  var CHEVRON = '<svg class="link-go" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
+
+  // official-ish brand colors — used only to tint the platform icon + its chip,
+  // never applied to the rest of the UI. Generic entries (website/email/phone/
+  // custom) stay neutral since they're not a specific company's mark.
+  var BRAND_COLORS = {
+    instagram: "url(#igGradient)",
+    facebook: "#1877F2",
+    viber: "#7360F2",
+    whatsapp: "#25D366",
+    tiktok: "#25F4EE",
+    linkedin: "#0A66C2",
+    telegram: "#26A5E4",
+    youtube: "#FF0000"
+  };
+  function tintIcon(iconEl, platformKey){
+    var brand = BRAND_COLORS[platformKey];
+    var svg = iconEl.querySelector("svg");
+    if (!svg) return;
+    if (brand){
+      svg.style.stroke = brand;
+      if (brand.indexOf("url(") !== 0) svg.style.color = brand;
+      var soft = brand.indexOf("#") === 0 ? hexToRgba(brand, 0.16) : "rgba(200,16,46,0.12)";
+      var strong = brand.indexOf("#") === 0 ? hexToRgba(brand, 0.4) : "rgba(200,16,46,0.35)";
+      iconEl.style.background = soft;
+      iconEl.style.borderColor = strong;
+    } else {
+      svg.style.stroke = "";
+      svg.style.color = "";
+      iconEl.style.background = "";
+      iconEl.style.borderColor = "";
+    }
+  }
+
+  /* ---------------- full style themes (not just an accent hue) ---------------- */
+  var THEMES = [
+    { key:"noir", name:"Noir Rouge",
+      bg:"#000000", card:"#0a0a0a", card2:"#0e0e0e",
+      hair:"rgba(255,255,255,0.09)", hairStrong:"rgba(255,255,255,0.16)",
+      text:"#f5f5f3", textDim:"#c9c9c6", muted:"#84837f",
+      accent1:"#c8102e", accent2:"#e2223f",
+      ctaBg:"#f5f5f3", ctaText:"#000000",
+      sheetBg:"#0c0c0c", inputBg:"#050505", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.025)" },
+    { key:"ivory", name:"Ivory Gold",
+      bg:"#f7f2e9", card:"#ffffff", card2:"#faf6ee",
+      hair:"rgba(20,16,8,0.10)", hairStrong:"rgba(20,16,8,0.20)",
+      text:"#1c1a16", textDim:"#4d473c", muted:"#8a8272",
+      accent1:"#8a6a1f", accent2:"#7d5f1c",
+      ctaBg:"#17140f", ctaText:"#f7f2e9",
+      sheetBg:"#ffffff", inputBg:"#f2ede1", iconBg:"rgba(20,16,8,0.05)",
+      ring:"#17140f", gridLine:"rgba(20,16,8,0.035)" },
+    { key:"emerald", name:"Midnight Emerald",
+      bg:"#040907", card:"#0a120d", card2:"#0e1712",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.15)",
+      text:"#f2f5f2", textDim:"#c3ccc5", muted:"#7d8a80",
+      accent1:"#175c3e", accent2:"#34a373",
+      ctaBg:"#f2f5f2", ctaText:"#04120a",
+      sheetBg:"#0a120d", inputBg:"#050b07", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.02)" },
+    { key:"sapphire", name:"Royal Sapphire",
+      bg:"#050710", card:"#0a0e1c", card2:"#0e1424",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.16)",
+      text:"#f2f4fa", textDim:"#c4c9db", muted:"#7d84a0",
+      accent1:"#1c3f7a", accent2:"#4c7fd6",
+      ctaBg:"#f2f4fa", ctaText:"#050815",
+      sheetBg:"#0a0e1c", inputBg:"#05070f", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.02)" },
+    { key:"platinum", name:"Platinum Mono",
+      bg:"#0a0a0a", card:"#111111", card2:"#151515",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.18)",
+      text:"#f2f2f0", textDim:"#c9c9c6", muted:"#8a8a86",
+      accent1:"#5a5a58", accent2:"#b8b8b3",
+      ctaBg:"#f2f2f0", ctaText:"#0a0a0a",
+      sheetBg:"#111111", inputBg:"#060606", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.025)" },
+    { key:"amethyst", name:"Amethyst Noir",
+      bg:"#0a0712", card:"#120b1e", card2:"#170f26",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.16)",
+      text:"#f4f1f8", textDim:"#cac2d8", muted:"#867d99",
+      accent1:"#4c3a86", accent2:"#8763e0",
+      ctaBg:"#f4f1f8", ctaText:"#0a0712",
+      sheetBg:"#120b1e", inputBg:"#0d0817", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.025)" },
+    { key:"blush", name:"Champagne Blush",
+      bg:"#f7ece9", card:"#ffffff", card2:"#fbf3f0",
+      hair:"rgba(60,24,24,0.10)", hairStrong:"rgba(60,24,24,0.20)",
+      text:"#241512", textDim:"#5a3f3a", muted:"#8f7873",
+      accent1:"#8c4b52", accent2:"#7a3f47",
+      ctaBg:"#231412", ctaText:"#f7ece9",
+      sheetBg:"#ffffff", inputBg:"#f3e6e2", iconBg:"rgba(60,24,24,0.05)",
+      ring:"#231412", gridLine:"rgba(60,24,24,0.035)" },
+    { key:"bronze", name:"Bronze Reserve",
+      bg:"#0b0805", card:"#140f09", card2:"#19130b",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.16)",
+      text:"#f5efe6", textDim:"#d0c3ae", muted:"#8f8172",
+      accent1:"#6b4423", accent2:"#c8843f",
+      ctaBg:"#f5efe6", ctaText:"#0b0805",
+      sheetBg:"#140f09", inputBg:"#0f0a06", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.025)" },
+    { key:"graphite", name:"Graphite Steel",
+      bg:"#08090b", card:"#0f1215", card2:"#141719",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.16)",
+      text:"#f1f3f4", textDim:"#c6cdd1", muted:"#828b90",
+      accent1:"#3a4a58", accent2:"#7fa0b8",
+      ctaBg:"#f1f3f4", ctaText:"#08090b",
+      sheetBg:"#0f1215", inputBg:"#0a0c0e", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.02)" },
+    { key:"burgundy", name:"Burgundy Wine",
+      bg:"#0a0507", card:"#150a0d", card2:"#1b0d11",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.16)",
+      text:"#f5eeee", textDim:"#d1bcc0", muted:"#8f7679",
+      accent1:"#5c1a28", accent2:"#cb5b71",
+      ctaBg:"#f5eeee", ctaText:"#0a0507",
+      sheetBg:"#150a0d", inputBg:"#0d0608", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.025)" },
+    { key:"pearl", name:"Pearl Frost",
+      bg:"#f3f5f7", card:"#ffffff", card2:"#f8fafb",
+      hair:"rgba(20,28,36,0.09)", hairStrong:"rgba(20,28,36,0.18)",
+      text:"#12181f", textDim:"#48525c", muted:"#828b93",
+      accent1:"#4c5c6c", accent2:"#39485a",
+      ctaBg:"#12181f", ctaText:"#f3f5f7",
+      sheetBg:"#ffffff", inputBg:"#eef1f4", iconBg:"rgba(20,28,36,0.05)",
+      ring:"#12181f", gridLine:"rgba(20,28,36,0.03)" },
+    { key:"teal", name:"Teal Lagoon",
+      bg:"#050d0c", card:"#0b1817", card2:"#0f1f1d",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.15)",
+      text:"#eef7f5", textDim:"#bcd6d1", muted:"#7a938e",
+      accent1:"#0f5c56", accent2:"#33ab9e",
+      ctaBg:"#eef7f5", ctaText:"#04100e",
+      sheetBg:"#0b1817", inputBg:"#061211", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.02)" },
+    { key:"terracotta", name:"Terracotta Clay",
+      bg:"#f8efe4", card:"#fffdfa", card2:"#fbf3ea",
+      hair:"rgba(60,32,16,0.10)", hairStrong:"rgba(60,32,16,0.20)",
+      text:"#2a1a10", textDim:"#5c4030", muted:"#93796a",
+      accent1:"#9a4a26", accent2:"#7f3c1e",
+      ctaBg:"#241609", ctaText:"#f8efe4",
+      sheetBg:"#fffdfa", inputBg:"#f2e4d5", iconBg:"rgba(60,32,16,0.05)",
+      ring:"#241609", gridLine:"rgba(60,32,16,0.035)" },
+    { key:"obsidian", name:"Obsidian Violet",
+      bg:"#060008", card:"#0f0512", card2:"#150818",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.17)",
+      text:"#f6eefa", textDim:"#d0bee0", muted:"#8c7a9c",
+      accent1:"#5c1f6b", accent2:"#c23fd6",
+      ctaBg:"#f6eefa", ctaText:"#06000a",
+      sheetBg:"#0f0512", inputBg:"#0a0310", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.025)" },
+    { key:"indigo", name:"Slate Indigo",
+      bg:"#06070d", card:"#0c0e18", card2:"#11131f",
+      hair:"rgba(255,255,255,0.08)", hairStrong:"rgba(255,255,255,0.16)",
+      text:"#eef0f7", textDim:"#c1c6d8", muted:"#7d84a0",
+      accent1:"#2c3a63", accent2:"#6b84c9",
+      ctaBg:"#eef0f7", ctaText:"#05060b",
+      sheetBg:"#0c0e18", inputBg:"#080a12", iconBg:"rgba(255,255,255,0.04)",
+      ring:"#ffffff", gridLine:"rgba(255,255,255,0.02)" }
+  ];
+
+  var LS_KEY = "noirPortalDemoState_v3";
+  var DEFAULT_STATE = {
+    name:"Alex Rivera",
+    bio:"One tap, every way to reach me. No app, no download — just hold your phone to the card.",
+    links:[
+      { id:1, platform:"instagram", handle:"@alex.rivera" },
+      { id:2, platform:"facebook",  handle:"Alex Rivera" },
+      { id:3, platform:"viber",     handle:"Call or chat" }
+    ],
+    nextLinkId:4,
+    linkMode:"portal",
+    directLinkId:null,
+    linkVisibility:"public",
+    privateSlug:"x7k2m9qz",
+    cardType:"noir",
+    theme:"noir",
+    bgStyle:"grid",
+    bgImage:null
+  };
+
+  function cloneDefault(){ return JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(LS_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        // merge over a fresh default so fields added in later versions
+        // (like name/bio) backfill cleanly for state saved before they existed
+        if(parsed && Array.isArray(parsed.links)) return Object.assign(cloneDefault(), parsed);
+      }
+    } catch(err){}
+    return cloneDefault();
+  }
+  function initials(name){
+    var parts = (name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  var state = loadState();
+
+  function persist(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+    catch(err){ showToastKey("saveFailed"); }
+  }
+
+  /* ---------------- toast ---------------- */
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function showToast(msg){
+    if(!msg) return;
+    toastEl.innerHTML = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 2200);
+  }
+  function showToastKey(key, withDemoSuffix){
+    var msg = t(key);
+    if (withDemoSuffix) msg += " <b>&middot;</b> " + t("demoSuffix");
+    showToast(msg);
+  }
+
+  /* ---------------- public link list ---------------- */
+  function renderLinks(){
+    var list = document.getElementById("linkList");
+    list.innerHTML = "";
+    if(!state.links.length){
+      var empty = document.createElement("p");
+      empty.className = "links-empty";
+      empty.setAttribute("data-i18n", "noLinksYet");
+      empty.textContent = t("noLinksYet");
+      list.appendChild(empty);
+      return;
+    }
+    state.links.forEach(function(link, i){
+      var meta = PLATFORMS[link.platform] || PLATFORMS.custom;
+      var row = document.createElement("a");
+      row.href = "#";
+      row.className = "link-row";
+      row.style.animationDelay = (i * 55) + "ms";
+
+      var icon = document.createElement("span");
+      icon.className = "link-icon";
+      icon.innerHTML = ICONS[link.platform] || ICONS.custom;
+      tintIcon(icon, link.platform);
+
+      // Handle/username intentionally not shown here — the public card stays
+      // discreet (platform + icon only); the actual handle is still stored
+      // and used as the tap destination, just not printed on the card.
+      var body = document.createElement("span");
+      body.className = "link-body";
+      var name = document.createElement("span");
+      name.className = "link-name";
+      name.textContent = meta.label;
+      body.appendChild(name);
+
+      row.appendChild(icon);
+      row.appendChild(body);
+      row.insertAdjacentHTML("beforeend", CHEVRON);
+
+      row.addEventListener("click", function(e){
+        e.preventDefault();
+        showToast(t("wouldOpenPrefix") + " " + meta.label + " <b>&middot;</b> " + t("demoSuffix"));
+        if (navigator.vibrate) navigator.vibrate(8);
+      });
+
+      list.appendChild(row);
+    });
+  }
+
+  /* ---------------- editor: links ---------------- */
+  var MOVE_UP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>';
+  var MOVE_DOWN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  var TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6"/><path d="M6 6l1 14a1.5 1.5 0 0 0 1.5 1.4h7A1.5 1.5 0 0 0 17 20L18 6"/></svg>';
+  var CHEVRON_DOWN_SM = '<svg class="lec-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+  function renderEditorLinks(){
+    var wrap = document.getElementById("editorLinks");
+    wrap.innerHTML = "";
+    state.links.forEach(function(link, i){
+      var meta = PLATFORMS[link.platform] || PLATFORMS.custom;
+      var card = document.createElement("div");
+      card.className = "link-edit-card";
+
+      // --- top row: platform picker trigger + reorder/remove tools ---
+      var top = document.createElement("div");
+      top.className = "lec-top";
+
+      var platformBtn = document.createElement("button");
+      platformBtn.type = "button";
+      platformBtn.className = "lec-platform";
+      platformBtn.setAttribute("aria-expanded", "false");
+      platformBtn.setAttribute("aria-haspopup", "true");
+
+      var iconSpan = document.createElement("span");
+      iconSpan.className = "lec-icon";
+      iconSpan.innerHTML = ICONS[link.platform] || ICONS.custom;
+      tintIcon(iconSpan, link.platform);
+      var nameSpan = document.createElement("span");
+      nameSpan.className = "lec-name";
+      nameSpan.textContent = meta.label;
+      platformBtn.appendChild(iconSpan);
+      platformBtn.appendChild(nameSpan);
+      platformBtn.insertAdjacentHTML("beforeend", CHEVRON_DOWN_SM);
+
+      var tools = document.createElement("div");
+      tools.className = "lec-tools";
+      var upBtn = document.createElement("button");
+      upBtn.type = "button";
+      upBtn.setAttribute("aria-label", t("moveUp"));
+      upBtn.disabled = i === 0;
+      upBtn.innerHTML = MOVE_UP_ICON;
+      upBtn.addEventListener("click", function(){
+        if (i === 0) return;
+        var tmp = state.links[i - 1];
+        state.links[i - 1] = state.links[i];
+        state.links[i] = tmp;
+        persist(); renderEditorLinks(); renderLinks();
+      });
+      var downBtn = document.createElement("button");
+      downBtn.type = "button";
+      downBtn.setAttribute("aria-label", t("moveDown"));
+      downBtn.disabled = i === state.links.length - 1;
+      downBtn.innerHTML = MOVE_DOWN_ICON;
+      downBtn.addEventListener("click", function(){
+        if (i === state.links.length - 1) return;
+        var tmp = state.links[i + 1];
+        state.links[i + 1] = state.links[i];
+        state.links[i] = tmp;
+        persist(); renderEditorLinks(); renderLinks();
+      });
+      var removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "lec-remove";
+      removeBtn.setAttribute("aria-label", t("removeLink"));
+      removeBtn.innerHTML = TRASH_ICON;
+      removeBtn.addEventListener("click", function(){
+        var removedId = state.links[i].id;
+        state.links.splice(i, 1);
+        if (state.directLinkId === removedId) state.directLinkId = null;
+        persist(); renderEditorLinks(); renderLinks(); renderDirectOptions();
+      });
+      tools.appendChild(upBtn);
+      tools.appendChild(downBtn);
+      tools.appendChild(removeBtn);
+
+      top.appendChild(platformBtn);
+      top.appendChild(tools);
+
+      // --- handle/link field ---
+      var field = document.createElement("div");
+      field.className = "lec-field";
+      var label = document.createElement("label");
+      label.textContent = t("handleLabel");
+      var input = document.createElement("input");
+      input.type = "text";
+      input.value = link.handle || "";
+      input.placeholder = meta.placeholder;
+      input.addEventListener("input", function(){
+        state.links[i].handle = input.value;
+        persist(); renderLinks();
+      });
+      field.appendChild(label);
+      field.appendChild(input);
+
+      // --- expandable icon-grid platform picker ---
+      var picker = document.createElement("div");
+      picker.className = "lec-picker";
+      var pickerInner = document.createElement("div");
+      pickerInner.className = "lec-picker-inner";
+      var grid = document.createElement("div");
+      grid.className = "lec-picker-grid";
+      PLATFORM_ORDER.forEach(function(key){
+        var opt = document.createElement("button");
+        opt.type = "button";
+        opt.className = "lec-option";
+        opt.setAttribute("aria-pressed", key === link.platform ? "true" : "false");
+        var optIcon = document.createElement("span");
+        optIcon.className = "lec-icon";
+        optIcon.innerHTML = ICONS[key] || ICONS.custom;
+        tintIcon(optIcon, key);
+        var optLabel = document.createElement("span");
+        optLabel.textContent = PLATFORMS[key].label;
+        opt.appendChild(optIcon);
+        opt.appendChild(optLabel);
+        opt.addEventListener("click", function(){
+          state.links[i].platform = key;
+          persist();
+          iconSpan.innerHTML = ICONS[key] || ICONS.custom;
+          tintIcon(iconSpan, key);
+          nameSpan.textContent = PLATFORMS[key].label;
+          input.placeholder = PLATFORMS[key].placeholder;
+          grid.querySelectorAll(".lec-option").forEach(function(o){
+            o.setAttribute("aria-pressed", o === opt ? "true" : "false");
+          });
+          picker.classList.remove("open");
+          platformBtn.setAttribute("aria-expanded", "false");
+          renderLinks();
+        });
+        grid.appendChild(opt);
+      });
+      pickerInner.appendChild(grid);
+      picker.appendChild(pickerInner);
+
+      platformBtn.addEventListener("click", function(){
+        var isOpen = picker.classList.contains("open");
+        document.querySelectorAll(".lec-picker.open").forEach(function(p){
+          if (p !== picker){
+            p.classList.remove("open");
+            var otherCard = p.closest(".link-edit-card");
+            var otherBtn = otherCard && otherCard.querySelector(".lec-platform");
+            if (otherBtn) otherBtn.setAttribute("aria-expanded", "false");
+          }
+        });
+        picker.classList.toggle("open", !isOpen);
+        platformBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+      });
+
+      card.appendChild(top);
+      card.appendChild(field);
+      card.appendChild(picker);
+      wrap.appendChild(card);
+    });
+  }
+
+  document.getElementById("addLinkBtn").addEventListener("click", function(){
+    state.links.push({ id: state.nextLinkId++, platform:"instagram", handle:"" });
+    persist(); renderEditorLinks(); renderLinks(); renderDirectOptions();
+    var inputs = document.querySelectorAll("#editorLinks .lec-field input");
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  /* ---------------- editor: full theme picker ---------------- */
+  function hexToRgba(hex, alpha){
+    var h = hex.replace("#", "");
+    if (h.length === 3) h = h.split("").map(function(c){ return c + c; }).join("");
+    var r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
+  function findTheme(key){
+    return THEMES.filter(function(x){ return x.key === key; })[0] || THEMES[0];
+  }
+  function applyTheme(){
+    var th = findTheme(state.theme);
+    var root = document.documentElement.style;
+    root.setProperty("--black", th.bg);
+    root.setProperty("--card", th.card);
+    root.setProperty("--card-2", th.card2);
+    root.setProperty("--hair", th.hair);
+    root.setProperty("--hair-strong", th.hairStrong);
+    root.setProperty("--white", th.text);
+    root.setProperty("--white-dim", th.textDim);
+    root.setProperty("--muted", th.muted);
+    root.setProperty("--red", th.accent1);
+    root.setProperty("--red-bright", th.accent2);
+    root.setProperty("--red-glow", hexToRgba(th.accent2, 0.35));
+    root.setProperty("--cta-bg", th.ctaBg);
+    root.setProperty("--cta-text", th.ctaText);
+    root.setProperty("--sheet-bg", th.sheetBg);
+    root.setProperty("--input-bg", th.inputBg);
+    root.setProperty("--icon-bg", th.iconBg);
+    root.setProperty("--ring", th.ring);
+    root.setProperty("--grid-line", th.gridLine);
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", th.bg);
+  }
+  function renderThemes(){
+    var row = document.getElementById("themeRow");
+    row.innerHTML = "";
+    THEMES.forEach(function(th){
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "theme-chip";
+      chip.setAttribute("aria-pressed", th.key === state.theme ? "true" : "false");
+
+      var swatch = document.createElement("span");
+      swatch.className = "theme-swatch";
+      swatch.style.background = th.bg;
+      var card = document.createElement("span");
+      card.className = "ts-card";
+      card.style.background = th.card;
+      var dot = document.createElement("span");
+      dot.className = "ts-dot";
+      dot.style.background = th.accent2;
+      swatch.appendChild(card);
+      swatch.appendChild(dot);
+
+      var label = document.createElement("span");
+      label.className = "theme-name";
+      label.textContent = th.name;
+
+      chip.appendChild(swatch);
+      chip.appendChild(label);
+      chip.addEventListener("click", function(){
+        var changed = state.theme !== th.key;
+        state.theme = th.key;
+        persist(); applyTheme(); renderThemes();
+        if (changed){
+          var newSwatch = row.querySelector('[aria-pressed="true"] .theme-swatch');
+          if (newSwatch){
+            newSwatch.classList.add("pop");
+            newSwatch.addEventListener("animationend", function(){ newSwatch.classList.remove("pop"); }, { once:true });
+          }
+        }
+      });
+      row.appendChild(chip);
+    });
+  }
+
+  /* ---------------- editor: background ---------------- */
+  var stageEl = document.getElementById("stage");
+  var customBgEl = document.getElementById("customBg");
+  function applyBackground(){
+    if (state.bgStyle === "custom" && state.bgImage){
+      customBgEl.style.backgroundImage = "url(" + state.bgImage + ")";
+      customBgEl.classList.add("show");
+      stageEl.classList.add("bg-flat");
+      stageEl.classList.remove("bg-glow");
+    } else {
+      customBgEl.classList.remove("show");
+      customBgEl.style.backgroundImage = "";
+      stageEl.classList.toggle("bg-flat", state.bgStyle === "flat");
+      stageEl.classList.toggle("bg-glow", state.bgStyle === "glow");
+    }
+  }
+  function renderBgChips(){
+    document.querySelectorAll(".bg-chip").forEach(function(chip){
+      chip.setAttribute("aria-pressed", chip.dataset.bg === state.bgStyle ? "true" : "false");
+    });
+    var preview = document.getElementById("bgPreview");
+    var img = document.getElementById("bgPreviewImg");
+    if (state.bgImage){
+      img.src = state.bgImage;
+      preview.hidden = false;
+    } else {
+      preview.hidden = true;
+      img.removeAttribute("src");
+    }
+  }
+  document.querySelectorAll(".bg-chip").forEach(function(chip){
+    chip.addEventListener("click", function(){
+      if (chip.dataset.bg === "custom" && !state.bgImage){
+        document.getElementById("bgUpload").click();
+        return;
+      }
+      state.bgStyle = chip.dataset.bg;
+      persist(); applyBackground(); renderBgChips();
+    });
+  });
+  document.getElementById("bgUpload").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type)){ showToastKey("bgInvalidType"); return; }
+    if (file.size > 3 * 1024 * 1024){ showToastKey("bgTooLarge"); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      state.bgImage = ev.target.result;
+      state.bgStyle = "custom";
+      persist(); applyBackground(); renderBgChips();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById("bgRemove").addEventListener("click", function(){
+    state.bgImage = null;
+    if (state.bgStyle === "custom") state.bgStyle = "grid";
+    persist(); applyBackground(); renderBgChips();
+    document.getElementById("bgUpload").value = "";
+  });
+
+  /* ---------------- profile: name + bio ---------------- */
+  function applyProfile(){
+    var ini = initials(state.name);
+    document.getElementById("displayName").textContent = state.name;
+    document.getElementById("displayBio").textContent = state.bio;
+    document.getElementById("avatarInitials").textContent = ini;
+    document.getElementById("stickyAvatarInitials").textContent = ini;
+    document.getElementById("stickyNameText").textContent = state.name;
+    updateVisibilityUI();
+  }
+
+  /* ---------------- link visibility: public vs. private ---------------- */
+  function slugify(str){
+    return (str || "").toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "you";
+  }
+  var linkRevealed = false;
+  function updateVisibilityUI(){
+    document.querySelectorAll(".card-type-option[data-card]").forEach(function(btn){
+      btn.setAttribute("aria-pressed", btn.dataset.card === state.cardType ? "true" : "false");
+    });
+    document.querySelectorAll(".mode-option[data-visibility]").forEach(function(btn){
+      btn.setAttribute("aria-pressed", btn.dataset.visibility === state.linkVisibility ? "true" : "false");
+    });
+    var isPublic = state.linkVisibility === "public";
+    document.getElementById("visibilityHint").textContent = isPublic
+      ? "Discoverable — anyone who searches your name can find this page."
+      : "Hidden from search engines. Only reachable via a direct tap or a link you share yourself.";
+
+    var brandedLabel = "link-ardela-" + state.cardType;
+    var fullPrivateUrl = "linkardela.com/" + brandedLabel + "-" + state.privateSlug;
+    var publicUrl = "linkardela.com/" + slugify(state.name);
+
+    var revealHint = document.getElementById("revealHint");
+    if (isPublic){
+      document.getElementById("urlPreviewText").textContent = publicUrl;
+      revealHint.hidden = true;
+    } else if (linkRevealed){
+      document.getElementById("urlPreviewText").textContent = fullPrivateUrl;
+      revealHint.hidden = false;
+    } else {
+      // Collapsed by design: no domain, no random code — just the branded
+      // label. Nothing to search or guess from, since this only ever
+      // reaches a visitor via an actual tap or a link the owner shares.
+      document.getElementById("urlPreviewText").textContent = brandedLabel;
+      revealHint.hidden = true;
+    }
+  }
+  document.querySelectorAll(".card-type-option[data-card]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      state.cardType = btn.dataset.card;
+      linkRevealed = false;
+      persist(); updateVisibilityUI();
+    });
+  });
+  document.querySelectorAll(".mode-option[data-visibility]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      state.linkVisibility = btn.dataset.visibility;
+      linkRevealed = false;
+      persist(); updateVisibilityUI();
+    });
+  });
+  document.getElementById("urlPreviewBtn").addEventListener("click", function(){
+    if (state.linkVisibility === "public"){
+      copyText("linkardela.com/" + slugify(state.name));
+      return;
+    }
+    if (!linkRevealed){
+      linkRevealed = true;
+      updateVisibilityUI();
+    } else {
+      copyText("linkardela.com/link-ardela-" + state.cardType + "-" + state.privateSlug);
+    }
+  });
+  function copyText(value){
+    var done = function(){ showToast("Link copied"); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(value).then(done, done);
+    } else { done(); }
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+  var editNameInput = document.getElementById("editName");
+  var editBioInput = document.getElementById("editBio");
+  editNameInput.addEventListener("input", function(){
+    state.name = editNameInput.value;
+    persist(); applyProfile();
+  });
+  editBioInput.addEventListener("input", function(){
+    state.bio = editBioInput.value;
+    persist(); applyProfile();
+  });
+
+  /* ---------------- tap behavior: full portal vs. direct link ---------------- */
+  function renderModeToggle(){
+    document.querySelectorAll(".mode-option").forEach(function(btn){
+      btn.setAttribute("aria-pressed", btn.dataset.mode === state.linkMode ? "true" : "false");
+    });
+    document.getElementById("directPicker").hidden = state.linkMode !== "direct";
+  }
+  document.querySelectorAll(".mode-option").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      state.linkMode = btn.dataset.mode;
+      if (state.linkMode === "direct" && state.directLinkId == null && state.links.length){
+        state.directLinkId = state.links[0].id;
+      }
+      persist(); renderModeToggle(); renderDirectOptions();
+    });
+  });
+
+  function renderDirectOptions(){
+    var wrap = document.getElementById("directOptions");
+    wrap.innerHTML = "";
+    if (!state.links.length){
+      var empty = document.createElement("p");
+      empty.className = "links-empty";
+      empty.setAttribute("data-i18n", "directNoLinks");
+      empty.textContent = t("directNoLinks");
+      wrap.appendChild(empty);
+      return;
+    }
+    state.links.forEach(function(link){
+      var meta = PLATFORMS[link.platform] || PLATFORMS.custom;
+      var opt = document.createElement("button");
+      opt.type = "button";
+      opt.className = "direct-option";
+      opt.setAttribute("aria-pressed", link.id === state.directLinkId ? "true" : "false");
+
+      var icon = document.createElement("span");
+      icon.className = "lec-icon";
+      icon.innerHTML = ICONS[link.platform] || ICONS.custom;
+      tintIcon(icon, link.platform);
+
+      var text = document.createElement("span");
+      text.className = "direct-option-text";
+      var name = document.createElement("span");
+      name.className = "direct-option-name";
+      name.textContent = meta.label;
+      var handle = document.createElement("span");
+      handle.className = "direct-option-handle";
+      handle.textContent = link.handle || meta.placeholder;
+      text.appendChild(name);
+      text.appendChild(handle);
+
+      var check = document.createElement("span");
+      check.className = "direct-option-check";
+      check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg>';
+
+      opt.appendChild(icon);
+      opt.appendChild(text);
+      opt.appendChild(check);
+      opt.addEventListener("click", function(){
+        state.directLinkId = link.id;
+        persist();
+        wrap.querySelectorAll(".direct-option").forEach(function(o){
+          o.setAttribute("aria-pressed", o === opt ? "true" : "false");
+        });
+      });
+      wrap.appendChild(opt);
+    });
+  }
+
+  /* ---------------- direct-link redirect screen (replaces the portal on load) ---------------- */
+  // No loading/transition state on purpose — a real card tap should feel
+  // instant, not like it's "buffering". The destination renders immediately.
+  var directScreenEl = document.getElementById("directScreen");
+
+  function showDirectRedirect(link){
+    var meta = PLATFORMS[link.platform] || PLATFORMS.custom;
+    document.getElementById("dsAvatar").textContent = initials(state.name);
+    document.getElementById("dsName").textContent = state.name;
+
+    var iconWrap = document.getElementById("dsIcon");
+    iconWrap.innerHTML = ICONS[link.platform] || ICONS.custom;
+    tintIcon(iconWrap, link.platform);
+    var brand = BRAND_COLORS[link.platform];
+
+    var arrivedPlatform = document.getElementById("dsArrivedPlatform");
+    arrivedPlatform.textContent = meta.label;
+    arrivedPlatform.style.color = (brand && brand.indexOf("#") === 0) ? brand : "var(--red-bright)";
+
+    stageEl.style.display = "none";
+    directScreenEl.hidden = false;
+  }
+  document.getElementById("dsViewPortal").addEventListener("click", function(){
+    directScreenEl.hidden = true;
+    stageEl.style.display = "";
+  });
+
+  /* ---------------- editor: open / close ---------------- */
+  var overlay = document.getElementById("editorOverlay");
+  function openEditor(){
+    editNameInput.value = state.name;
+    editBioInput.value = state.bio;
+    linkRevealed = false;
+    renderEditorLinks(); renderThemes(); renderBgChips(); renderModeToggle(); renderDirectOptions(); updateVisibilityUI();
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden";
+  }
+  function closeEditor(){
+    overlay.classList.remove("show");
+    document.body.style.overflow = "";
+  }
+  document.getElementById("editPortalBtn").addEventListener("click", openEditor);
+  document.getElementById("editorClose").addEventListener("click", closeEditor);
+  overlay.addEventListener("click", function(e){ if (e.target === overlay) closeEditor(); });
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && overlay.classList.contains("show")) closeEditor();
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    state = cloneDefault();
+    linkRevealed = false;
+    try{ localStorage.removeItem(LS_KEY); } catch(err){}
+    applyProfile(); applyTheme(); applyBackground(); renderLinks(); renderEditorLinks(); renderThemes(); renderBgChips();
+    renderModeToggle(); renderDirectOptions();
+    editNameInput.value = state.name;
+    editBioInput.value = state.bio;
+    showToastKey("resetDone");
+  });
+
+  /* ---------------- language ---------------- */
+  function applyLang(){
+    document.documentElement.lang = currentLang;
+    document.querySelectorAll("[data-i18n]").forEach(function(el){ el.innerHTML = t(el.dataset.i18n); });
+  }
+
+  /* ---------------- quick actions ---------------- */
+  document.querySelectorAll(".quick[data-copy]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var value = btn.dataset.copy;
+      var done = function(){ showToastKey(btn.dataset.toastKey); };
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(value).then(done, done);
+      } else { done(); }
+      if (navigator.vibrate) navigator.vibrate(8);
+    });
+  });
+  document.querySelectorAll(".quick:not([data-copy])").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      showToastKey(btn.dataset.toastKey);
+      if (navigator.vibrate) navigator.vibrate(8);
+    });
+  });
+
+  /* ---------------- save contact (real vCard) ---------------- */
+  function downloadVcard(){
+    var name = (state.name || "Alex Rivera").trim();
+    var parts = name.split(/\s+/);
+    var first = parts[0] || name;
+    var last = parts.slice(1).join(" ");
+    var vcard = [
+      "BEGIN:VCARD","VERSION:3.0","N:" + last + ";" + first + ";;;","FN:" + name,
+      "ORG:Rivera & Co.","TITLE:Founder",
+      "TEL;TYPE=CELL:+14155550142","EMAIL:hello@alexrivera.co","URL:https://rivera.co","END:VCARD"
+    ].join("\r\n");
+    var blob = new Blob([vcard], { type: "text/vcard" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var fileSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "contact";
+    a.href = url; a.download = fileSlug + ".vcf";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+    showToastKey("vcardToast");
+    if (navigator.vibrate) navigator.vibrate(12);
+  }
+  document.getElementById("saveContact").addEventListener("click", downloadVcard);
+  document.getElementById("stickySave").addEventListener("click", downloadVcard);
+
+  /* ---------------- sticky bar ---------------- */
+  var stickyBar = document.getElementById("stickyBar");
+  var hero = document.querySelector(".hero");
+  if ("IntersectionObserver" in window){
+    new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){ stickyBar.classList.toggle("show", !entry.isIntersecting); });
+    }, { threshold: 0 }).observe(hero);
+  }
+
+  /* ---------------- boot ---------------- */
+  applyProfile();
+  applyTheme();
+  applyBackground();
+  renderLinks();
+  applyLang();
+
+  if (state.linkMode === "direct" && state.directLinkId != null){
+    var directTarget = state.links.filter(function(l){ return l.id === state.directLinkId; })[0];
+    if (directTarget) showDirectRedirect(directTarget);
+  }
+})();
+</script>
+
+</body>
+</html>
