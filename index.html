@@ -639,6 +639,26 @@
     </div>
     <p class="editor-note" data-i18n="editorNote">This lives behind your private login in the real product — try it out here.</p>
 
+    <div class="editor-section" id="ownerLoginGate" hidden>
+      <h3>Owner Login</h3>
+      <p class="editor-hint">Only the portal owner can save changes here — everyone else who taps the card just sees the live portal. Log in to edit.</p>
+      <div class="profile-fields">
+        <div class="lec-field">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" autocomplete="email" inputmode="email">
+        </div>
+        <div class="lec-field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password">
+        </div>
+      </div>
+      <button type="button" class="cta" id="loginBtn" style="margin-top:14px;">
+        <span data-i18n="loginCta">Log In</span>
+      </button>
+      <p class="editor-hint" id="loginStatus" aria-live="polite"></p>
+    </div>
+
+    <div id="editorFields">
     <div class="editor-section">
       <h3 data-i18n="profileSectionTitle">Profile</h3>
       <div class="profile-fields">
@@ -749,7 +769,9 @@
 
     <div class="editor-footer">
       <button class="reset-btn" type="button" id="resetBtn" data-i18n="resetDefault">Reset to Default</button>
+      <button class="reset-btn" type="button" id="logoutBtn" style="margin-top:8px;" hidden>Log Out</button>
     </div>
+    </div><!-- /#editorFields -->
   </div>
 </div>
 
@@ -771,9 +793,27 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   "use strict";
+
+  /* ---------------- cloud sync (Supabase) ----------------
+     Optional layer on top of the localStorage-only demo: when configured,
+     the portal's real data lives in one shared "portal" row so every
+     device that taps the card sees the same thing, while only the
+     authenticated owner (auth.uid() === row.owner_id, enforced by Row
+     Level Security — see supabase-setup.sql) can save changes. If the
+     client library fails to load, or the project isn't reachable, every
+     cloud call below is a no-op and the page quietly falls back to the
+     original device-local demo behavior. */
+  var SUPABASE_URL = "https://sjcvfqwkssejsuthsujm.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_nmlQ6hJuAgzo0qGmpFnyEA_mfRhv6or";
+  var sb = (window.supabase && window.supabase.createClient)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+  var cloudRow = null;   // the fetched { id, owner_id, data, ... } row, once loaded
+  var isOwner = false;   // true once a logged-in session's uid matches cloudRow.owner_id
 
   /* ---------------- i18n ---------------- */
   var I18N = {
@@ -1057,6 +1097,19 @@
   function persist(){
     try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
     catch(err){ showToastKey("saveFailed"); }
+    cloudSave();
+  }
+
+  /* ---------------- cloud save (debounced, owner-only) ---------------- */
+  var cloudSaveTimer = null;
+  function cloudSave(){
+    if (!sb || !isOwner || !cloudRow) return;
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(function(){
+      sb.from("portal").update({ data: state }).eq("id", cloudRow.id).then(function(res){
+        if (res.error) showToast("Cloud save failed &middot; " + res.error.message);
+      });
+    }, 600);
   }
 
   /* ---------------- toast ---------------- */
@@ -1642,6 +1695,7 @@
     editBioInput.value = state.bio;
     linkRevealed = false;
     renderEditorLinks(); renderThemes(); renderBgChips(); renderModeToggle(); renderDirectOptions(); updateVisibilityUI();
+    refreshEditorGate();
     overlay.classList.add("show");
     document.body.style.overflow = "hidden";
   }
@@ -1724,27 +1778,110 @@
     }, { threshold: 0 }).observe(hero);
   }
 
+  /* ---------------- owner login gate ---------------- */
+  var editorFieldsEl = document.getElementById("editorFields");
+  var loginGateEl = document.getElementById("ownerLoginGate");
+  var logoutBtn = document.getElementById("logoutBtn");
+  function refreshEditorGate(){
+    if (!sb || isOwner){
+      loginGateEl.hidden = true;
+      editorFieldsEl.hidden = false;
+      logoutBtn.hidden = !sb;
+    } else {
+      loginGateEl.hidden = false;
+      editorFieldsEl.hidden = true;
+    }
+  }
+  var loginBtn = document.getElementById("loginBtn");
+  var loginStatus = document.getElementById("loginStatus");
+  loginBtn.addEventListener("click", function(){
+    if (!sb) return;
+    var email = document.getElementById("loginEmail").value.trim();
+    var password = document.getElementById("loginPassword").value;
+    if (!email || !password){ loginStatus.textContent = "Enter both email and password."; return; }
+    loginBtn.disabled = true;
+    loginStatus.textContent = "Logging in…";
+    sb.auth.signInWithPassword({ email: email, password: password }).then(function(res){
+      loginBtn.disabled = false;
+      loginStatus.textContent = res.error ? res.error.message : "";
+    });
+  });
+  logoutBtn.addEventListener("click", function(){ if (sb) sb.auth.signOut(); });
+
+  function syncOwnership(session){
+    isOwner = !!(session && session.user && cloudRow && session.user.id === cloudRow.owner_id);
+    refreshEditorGate();
+  }
+  if (sb){
+    sb.auth.onAuthStateChange(function(_event, session){
+      // First-ever login for this project: no shared row exists yet, so
+      // create it now, seeded from whatever's in local state.
+      if (session && session.user && !cloudRow){
+        sb.from("portal").insert({ owner_id: session.user.id, data: state }).select().single()
+          .then(function(res){
+            if (!res.error && res.data) cloudRow = res.data;
+            syncOwnership(session);
+          });
+      } else {
+        syncOwnership(session);
+      }
+    });
+  }
+
   /* ---------------- boot ---------------- */
-  applyProfile();
-  applyTheme();
-  applyBackground();
-  renderLinks();
-  applyLang();
+  function renderAll(){
+    applyProfile();
+    applyTheme();
+    applyBackground();
+    renderLinks();
+    applyLang();
+  }
+  renderAll();
 
   // #edit always forces the full editable portal, skipping Direct Link's
   // auto-redirect — the owner's way back in once a real URL is live there,
   // since the plain card URL would otherwise redirect away before the
   // editor ever has a chance to render. Bookmark "…/#edit" for that.
   var forcePortal = /(^|[?&#])edit(=1)?(&|$)/i.test(location.hash + location.search);
-  if (!forcePortal && state.linkMode === "direct" && state.directLinkId != null){
-    var directTarget = state.links.filter(function(l){ return l.id === state.directLinkId; })[0];
-    if (directTarget){
-      var directDest = resolveLinkUrl(directTarget);
-      if (directDest) window.location.replace(directDest);
-      else showDirectRedirect(directTarget);
+
+  function maybeGoDirect(){
+    if (forcePortal) return false;
+    if (state.linkMode === "direct" && state.directLinkId != null){
+      var directTarget = state.links.filter(function(l){ return l.id === state.directLinkId; })[0];
+      if (directTarget){
+        var directDest = resolveLinkUrl(directTarget);
+        if (directDest){ window.location.replace(directDest); return true; }
+        showDirectRedirect(directTarget);
+        return true;
+      }
     }
-  } else if (forcePortal){
-    openEditor();
+    return false;
+  }
+
+  // Instant, device-local decision first (works even offline, and covers
+  // the owner's own phone which already has this saved).
+  var handled = maybeGoDirect();
+  if (forcePortal && !handled) openEditor();
+
+  // Then bring in the shared cloud copy — the version every other device
+  // that taps the card should actually see. Falls back to local-only
+  // behavior above if Supabase isn't reachable.
+  if (sb){
+    sb.from("portal").select("*").limit(1).then(function(res){
+      var row = (!res.error && res.data && res.data.length) ? res.data[0] : null;
+      if (row){
+        cloudRow = row;
+        state = Object.assign(cloneDefault(), row.data || {});
+        try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(err){}
+        if (!handled){
+          renderAll();
+          handled = maybeGoDirect();
+        }
+      }
+      return sb.auth.getSession();
+    }).then(function(res){
+      syncOwnership(res && res.data ? res.data.session : null);
+    });
   }
 })();
 </script>
