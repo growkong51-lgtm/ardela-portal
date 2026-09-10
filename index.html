@@ -161,11 +161,11 @@
     animation:heroIn .55s var(--ease) both;
   }
   @keyframes heroIn{ from{ opacity:0; transform:scale(.9) translateY(8px); } to{ opacity:1; transform:scale(1) translateY(0); } }
-  .avatar-ring{ position:absolute; inset:0; border-radius:50%; border:2px solid rgba(255,255,255,0.55); }
+  .avatar-ring{ position:absolute; inset:0; border-radius:50%; border:2px solid rgba(255,255,255,0.85); }
   .avatar-ring::before{
     content:''; position:absolute; inset:-7px; border-radius:50%;
-    border:2px solid var(--red-bright);
-    box-shadow:0 0 16px var(--red-glow);
+    border:2px solid rgba(255,255,255,0.55);
+    box-shadow:0 0 16px rgba(255,255,255,0.25);
   }
   .avatar{
     position:absolute; inset:6px; border-radius:50%;
