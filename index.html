@@ -661,6 +661,20 @@
         <span data-i18n="loginCta">Log In</span>
       </button>
       <p class="editor-hint" id="loginStatus" aria-live="polite"></p>
+      <button type="button" class="reset-btn" id="forgotPasswordBtn" style="margin-top:8px;">Forgot password?</button>
+    </div>
+
+    <div class="editor-section" id="setNewPasswordGate" hidden>
+      <h3>Set A New Password</h3>
+      <p class="editor-hint">You followed a password reset link — pick a new password to finish.</p>
+      <div class="profile-fields">
+        <div class="lec-field">
+          <label for="newPassword">New password</label>
+          <input id="newPassword" type="password" autocomplete="new-password">
+        </div>
+      </div>
+      <button type="button" class="cta" id="setNewPasswordBtn" style="margin-top:14px;">Save New Password</button>
+      <p class="editor-hint" id="newPasswordStatus" aria-live="polite"></p>
     </div>
 
     <div id="editorFields">
@@ -1825,12 +1839,35 @@
   });
   logoutBtn.addEventListener("click", function(){ if (sb) sb.auth.signOut(); });
 
+  var forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+  forgotPasswordBtn.addEventListener("click", function(){
+    if (!sb) return;
+    var email = document.getElementById("loginEmail").value.trim();
+    if (!email){ loginStatus.textContent = "Enter your email above first, then tap “Forgot password?”."; return; }
+    forgotPasswordBtn.disabled = true;
+    loginStatus.textContent = "Sending reset link…";
+    sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname }).then(function(res){
+      forgotPasswordBtn.disabled = false;
+      loginStatus.textContent = res.error ? res.error.message : "Reset link sent — check your email (and spam folder).";
+    });
+  });
+
   function syncOwnership(session){
     isOwner = !!(session && session.user && cloudRow && session.user.id === cloudRow.owner_id);
     refreshEditorGate();
   }
+  var setNewPasswordGateEl = document.getElementById("setNewPasswordGate");
   if (sb){
-    sb.auth.onAuthStateChange(function(_event, session){
+    sb.auth.onAuthStateChange(function(event, session){
+      // A password-reset link logs the visitor in with a short-lived
+      // recovery session — intercept that here so they can pick a new
+      // password instead of falling straight into the editor.
+      if (event === "PASSWORD_RECOVERY"){
+        loginGateEl.hidden = true;
+        editorFieldsEl.hidden = true;
+        setNewPasswordGateEl.hidden = false;
+        return;
+      }
       // First-ever login for this project: no shared row exists yet, so
       // create it now, seeded from whatever's in local state.
       if (session && session.user && !cloudRow){
@@ -1844,6 +1881,22 @@
       }
     });
   }
+  var setNewPasswordBtn = document.getElementById("setNewPasswordBtn");
+  var newPasswordStatus = document.getElementById("newPasswordStatus");
+  setNewPasswordBtn.addEventListener("click", function(){
+    if (!sb) return;
+    var newPassword = document.getElementById("newPassword").value;
+    if (!newPassword || newPassword.length < 6){ newPasswordStatus.textContent = "Use at least 6 characters."; return; }
+    setNewPasswordBtn.disabled = true;
+    newPasswordStatus.textContent = "Saving…";
+    sb.auth.updateUser({ password: newPassword }).then(function(res){
+      setNewPasswordBtn.disabled = false;
+      if (res.error){ newPasswordStatus.textContent = res.error.message; return; }
+      newPasswordStatus.textContent = "Password updated — you're logged in.";
+      setNewPasswordGateEl.hidden = true;
+      sb.auth.getSession().then(function(r){ syncOwnership(r && r.data ? r.data.session : null); });
+    });
+  });
 
   /* ---------------- boot ---------------- */
   function renderAll(){
