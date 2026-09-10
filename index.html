@@ -217,11 +217,16 @@
   .quick-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:0 0 14px; }
   .quick{
     display:flex; flex-direction:column; align-items:center; gap:8px;
-    padding:14px 6px 12px; background:var(--card); border:1px solid var(--hair); border-radius:14px;
+    padding:14px 6px 12px; border:1px solid var(--hair); border-radius:14px;
+    background:linear-gradient(var(--red-glow), var(--red-glow)), var(--card);
     min-height:44px;
     transition:border-color .2s var(--ease), transform .2s var(--ease), background .2s var(--ease), box-shadow .2s var(--ease);
   }
-  .quick:hover{ border-color:var(--hair-strong); background:var(--card-2); transform:translateY(-2px); box-shadow:0 10px 22px -10px rgba(0,0,0,0.5); }
+  .quick:hover{
+    border-color:var(--hair-strong);
+    background:linear-gradient(var(--red-glow), var(--red-glow)), var(--card-2);
+    transform:translateY(-2px); box-shadow:0 10px 22px -10px rgba(0,0,0,0.5);
+  }
   .quick:active{ transform:scale(.96); box-shadow:none; }
   .quick svg{ width:19px; height:19px; stroke:var(--white); }
   .quick span{ font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--white-dim); }
@@ -248,13 +253,15 @@
   .links{ display:flex; flex-direction:column; gap:10px; margin-bottom:8px; }
   .link-row{
     display:flex; align-items:center; gap:14px; padding:15px 16px;
-    background:var(--card); border:1px solid var(--hair); border-left:2px solid transparent; border-radius:12px;
+    border:1px solid var(--hair); border-left:2px solid transparent; border-radius:12px;
+    background:linear-gradient(var(--red-glow), var(--red-glow)), var(--card);
     min-height:44px; width:100%; text-align:left;
     transition:border-color .22s var(--ease), background .22s var(--ease), transform .22s var(--ease), box-shadow .22s var(--ease);
     opacity:0; transform:translateY(10px); animation:rise .5s var(--ease) forwards;
   }
   .link-row:hover{
-    background:var(--card-2); border-color:var(--hair-strong); border-left-color:var(--red-bright);
+    background:linear-gradient(var(--red-glow), var(--red-glow)), var(--card-2);
+    border-color:var(--hair-strong); border-left-color:var(--red-bright);
     transform:translateY(-2px); box-shadow:0 12px 26px -12px rgba(0,0,0,0.55);
   }
   .link-row:active{ transform:scale(.985); box-shadow:none; }
@@ -598,7 +605,7 @@
   <div class="frame">
 
     <div class="top-bar">
-      <div class="demo-tag"><i class="dot"></i><span data-i18n="demoTag">Live Demo — Tap Portal</span></div>
+      <div class="demo-tag"><i class="dot"></i><span data-i18n="demoTag">ARDÉLA</span></div>
       <div class="top-controls">
         <button class="edit-btn" type="button" id="editPortalBtn" aria-label="Edit Portal">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l.8-3.6L16.6 4.6a1.8 1.8 0 0 1 2.6 0l.2.2a1.8 1.8 0 0 1 0 2.6L7.6 19.2 4 20z"/><path d="M14.5 6.7l2.8 2.8"/></svg>
@@ -869,7 +876,7 @@
   /* ---------------- i18n ---------------- */
   var I18N = {
     en: {
-      demoTag: "Live Demo — Tap Portal",
+      demoTag: "ARDÉLA",
       callLabel: "Call", emailLabel: "Email", visitLabel: "Visit",
       callToast: "Number copied", emailToast: "Email copied", visitToast: "Directions would open here",
       saveCta: "Save My Contact",
