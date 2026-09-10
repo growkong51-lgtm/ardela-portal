@@ -115,16 +115,32 @@
   }
 
   /* On a wide (desktop/PC) screen the centered card leaves bare space to
-     its left and right — fill that with pure white and let the card float
-     on it, instead of the dark theme color bleeding all the way out. */
+     its left and right — fill that with a soft, premium off-white instead
+     of the dark theme color bleeding all the way out, and let the card
+     float above it like a physical object under a showroom light. */
   @media (min-width:700px){
-    body{ background:#ffffff; }
-    .stage::before, .stage::after{ display:none; }
+    body{
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, var(--red-glow), transparent 70%),
+        linear-gradient(180deg, #fbfbfb, #eeeeee);
+      background-attachment:fixed;
+    }
+    .stage::before{ display:none; }
+    .stage::after{
+      background-image:radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px);
+      background-size:24px 24px;
+      -webkit-mask-image:radial-gradient(ellipse 55% 60% at 50% 30%, #000 0%, transparent 75%);
+              mask-image:radial-gradient(ellipse 55% 60% at 50% 30%, #000 0%, transparent 75%);
+    }
     .frame{
       background:var(--sheet-bg);
-      border-radius:28px;
-      margin:48px auto;
-      box-shadow:0 30px 80px -20px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.06);
+      border-radius:32px;
+      margin:64px auto;
+      box-shadow:
+        0 50px 120px -30px rgba(0,0,0,0.4),
+        0 12px 32px -12px rgba(0,0,0,0.18),
+        0 0 0 1px rgba(0,0,0,0.06),
+        0 0 140px -30px var(--red-glow);
     }
     .sticky-bar{ background:none; }
   }
