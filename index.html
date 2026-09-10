@@ -114,6 +114,21 @@
     padding:20px 20px 96px;
   }
 
+  /* On a wide (desktop/PC) screen the centered card leaves bare space to
+     its left and right — fill that with pure white and let the card float
+     on it, instead of the dark theme color bleeding all the way out. */
+  @media (min-width:700px){
+    body{ background:#ffffff; }
+    .stage::before, .stage::after{ display:none; }
+    .frame{
+      background:var(--sheet-bg);
+      border-radius:28px;
+      margin:48px auto;
+      box-shadow:0 30px 80px -20px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.06);
+    }
+    .sticky-bar{ background:none; }
+  }
+
   /* ---------- top bar ---------- */
   .top-bar{
     display:flex;
