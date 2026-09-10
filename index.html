@@ -24,6 +24,8 @@
     --red:#c8102e;
     --red-bright:#e2223f;
     --red-glow:rgba(200,16,46,0.35);
+    --tint-a:rgba(200,16,46,0.60);
+    --tint-b:rgba(200,16,46,0.28);
     /* surface tokens — swapped per full theme, not just the accent */
     --cta-bg:#f5f5f3;
     --cta-text:#000000;
@@ -218,13 +220,13 @@
   .quick{
     display:flex; flex-direction:column; align-items:center; gap:8px;
     padding:14px 6px 12px; border:1px solid var(--hair); border-radius:14px;
-    background:linear-gradient(var(--red-glow), var(--red-glow)), var(--card);
+    background:linear-gradient(135deg, var(--tint-a), var(--tint-b)), var(--card);
     min-height:44px;
     transition:border-color .2s var(--ease), transform .2s var(--ease), background .2s var(--ease), box-shadow .2s var(--ease);
   }
   .quick:hover{
     border-color:var(--hair-strong);
-    background:linear-gradient(var(--red-glow), var(--red-glow)), var(--card-2);
+    background:linear-gradient(135deg, var(--tint-a), var(--tint-b)), var(--card-2);
     transform:translateY(-2px); box-shadow:0 10px 22px -10px rgba(0,0,0,0.5);
   }
   .quick:active{ transform:scale(.96); box-shadow:none; }
@@ -254,13 +256,13 @@
   .link-row{
     display:flex; align-items:center; gap:14px; padding:15px 16px;
     border:1px solid var(--hair); border-left:2px solid transparent; border-radius:12px;
-    background:linear-gradient(var(--red-glow), var(--red-glow)), var(--card);
+    background:linear-gradient(135deg, var(--tint-a), var(--tint-b)), var(--card);
     min-height:44px; width:100%; text-align:left;
     transition:border-color .22s var(--ease), background .22s var(--ease), transform .22s var(--ease), box-shadow .22s var(--ease);
     opacity:0; transform:translateY(10px); animation:rise .5s var(--ease) forwards;
   }
   .link-row:hover{
-    background:linear-gradient(var(--red-glow), var(--red-glow)), var(--card-2);
+    background:linear-gradient(135deg, var(--tint-a), var(--tint-b)), var(--card-2);
     border-color:var(--hair-strong); border-left-color:var(--red-bright);
     transform:translateY(-2px); box-shadow:0 12px 26px -12px rgba(0,0,0,0.55);
   }
@@ -1445,6 +1447,8 @@
     root.setProperty("--red", th.accent1);
     root.setProperty("--red-bright", th.accent2);
     root.setProperty("--red-glow", hexToRgba(th.accent2, 0.35));
+    root.setProperty("--tint-a", hexToRgba(th.accent2, 0.60));
+    root.setProperty("--tint-b", hexToRgba(th.accent2, 0.28));
     root.setProperty("--cta-bg", th.ctaBg);
     root.setProperty("--cta-text", th.ctaText);
     root.setProperty("--sheet-bg", th.sheetBg);
