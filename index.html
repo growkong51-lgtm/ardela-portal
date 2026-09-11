@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --black:#000000;
@@ -34,8 +34,8 @@
     --icon-bg:rgba(255,255,255,0.04);
     --ring:#ffffff;
     --grid-line:rgba(255,255,255,0.025);
-    --serif:'Playfair Display',Georgia,serif;
-    --sans:'Jost',-apple-system,BlinkMacSystemFont,sans-serif;
+    --serif:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
     --ease:cubic-bezier(.16,1,.3,1);
   }
   *{box-sizing:border-box;}
@@ -191,18 +191,18 @@
     position:absolute; inset:5px; border-radius:50%;
     background:linear-gradient(160deg,#161615,#050505);
     display:flex; align-items:center; justify-content:center;
-    font-family:var(--serif); font-size:30px; font-weight:600; color:#f2f0ec;
+    font-family:var(--serif); font-size:28px; font-weight:700; color:#f2f0ec;
     box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);
   }
   .name-row{ display:flex; align-items:center; justify-content:center; gap:7px; margin:0 0 8px; }
-  .name{ font-family:var(--serif); font-weight:700; font-size:34px; letter-spacing:-.01em; line-height:1.15; margin:0; }
+  .name{ font-family:var(--serif); font-weight:700; font-size:30px; letter-spacing:.01em; text-transform:uppercase; line-height:1.15; margin:0; }
   .verified{
     flex:none; width:19px; height:19px; border-radius:50%;
     background:var(--red-bright); display:inline-flex; align-items:center; justify-content:center;
     box-shadow:0 0 0 3px rgba(226,34,63,0.16);
   }
   .verified svg{ width:11px; height:11px; stroke:#fff; }
-  .role{ font-size:11px; font-weight:500; letter-spacing:.22em; text-transform:uppercase; color:var(--red-bright); margin:0 0 14px; }
+  .role{ font-size:11px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--red-bright); margin:0 0 14px; }
   .tagline{ font-size:14.5px; line-height:1.6; color:var(--white-dim); max-width:300px; margin:0 auto; font-weight:300; }
 
   /* ---------- quick actions ---------- */
@@ -221,13 +221,13 @@
   }
   .quick:active{ transform:scale(.96); box-shadow:none; }
   .quick svg{ width:19px; height:19px; stroke:var(--white); }
-  .quick span{ font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--white-dim); }
+  .quick span{ font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--white-dim); }
 
   /* ---------- primary CTA ---------- */
   .cta{
     display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
     padding:16px 20px; margin-bottom:28px; background:var(--cta-bg); color:var(--cta-text); border:none;
-    border-radius:14px; font-size:14px; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+    border-radius:14px; font-size:14px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
     min-height:44px; transition:transform .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
   }
   .cta svg{ width:17px; height:17px; stroke:var(--cta-text); flex:none; }
@@ -237,7 +237,7 @@
   /* ---------- divider ---------- */
   .divider{
     display:flex; align-items:center; gap:14px; margin:0 0 22px; color:var(--muted);
-    font-size:10px; letter-spacing:.24em; text-transform:uppercase;
+    font-size:10px; font-weight:700; letter-spacing:.24em; text-transform:uppercase;
   }
   .divider::before, .divider::after{ content:''; flex:1; height:1px; background:var(--hair); }
 
@@ -263,7 +263,7 @@
   }
   .link-icon svg{ width:17px; height:17px; stroke:var(--white); }
   .link-body{ flex:1; min-width:0; }
-  .link-name{ font-size:15px; font-weight:500; letter-spacing:.01em; color:var(--white); }
+  .link-name{ font-size:14px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--white); }
   .link-go{ flex:none; width:15px; height:15px; stroke:var(--muted); transition:transform .22s var(--ease), stroke .22s var(--ease); }
   .link-row:hover .link-go{ transform:translateX(3px); stroke:var(--red-bright); }
   .links-empty{ text-align:center; font-size:12.5px; color:var(--muted); padding:22px 10px; border:1px dashed var(--hair-strong); border-radius:12px; line-height:1.6; }
@@ -272,8 +272,8 @@
 
   /* ---------- footer ---------- */
   .foot{ text-align:center; padding-top:8px; border-top:1px solid var(--hair); margin-top:28px; }
-  .foot-brand{ font-family:var(--serif); font-size:15px; letter-spacing:.06em; color:var(--white-dim); margin:22px 0 6px; }
-  .foot-brand b{ color:var(--white); font-weight:600; font-style:italic; }
+  .foot-brand{ font-family:var(--serif); font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--white-dim); margin:22px 0 6px; }
+  .foot-brand b{ color:var(--white); font-weight:700; letter-spacing:.1em; }
   .foot-note{ font-size:11.5px; line-height:1.7; color:var(--muted); max-width:300px; margin:0 auto; font-weight:300; }
 
   /* ---------- sticky save-contact bar ---------- */
@@ -294,13 +294,13 @@
   .sticky-avatar{
     flex:none; width:32px; height:32px; border-radius:50%;
     background:linear-gradient(160deg,#1a1a19,#050505); border:1px solid var(--hair-strong);
-    display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:12px; font-weight:500;
+    display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:12px; font-weight:700;
     color:#f2f0ec;
   }
-  .sticky-name{ flex:1; min-width:0; font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sticky-name{ flex:1; min-width:0; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .sticky-save{
     flex:none; display:flex; align-items:center; gap:7px; background:var(--cta-bg); color:var(--cta-text); border:none;
-    border-radius:9px; padding:10px 14px; font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+    border-radius:9px; padding:10px 14px; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
     min-height:40px; transition:transform .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
   }
   .sticky-save:active{ transform:scale(.96); }
